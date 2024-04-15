@@ -46,6 +46,7 @@ namespace NP {
 
 				auto s = State_space(prob.jobs, prob.dag, prob.num_processors, opts.timeout,
 				                     opts.max_depth, opts.num_buckets);
+			
 				s.be_naive = opts.be_naive;
 				s.cpu_time.start();
 				s.explore();
@@ -324,8 +325,10 @@ namespace NP {
 				Response_times& r, const Job<Time>& j, Interval<Time> range)
 			{
 				update_finish_times(r, j.get_id(), range);
-				if (j.exceeds_deadline(range.upto()))
-					aborted = true;
+				if (j.exceeds_deadline(range.upto())){
+					aborted =  !check_energy_aware_schedulability();
+				}
+					
 			}
 
 			void update_finish_times(const Job<Time>& j, Interval<Time> range)
@@ -350,6 +353,13 @@ namespace NP {
 				return predecessors[index_of(j)];
 			}
 
+			bool check_energy_aware_schedulability(){
+				DM("Energy aware scheduling checked" << std::endl);
+				DM("Optimizing speed scaling" << std::endl);
+				DM("Energy aware schedule not found" << std::endl);
+				return false;
+			}
+
 			void check_for_deadline_misses(const State& old_s, const State& new_s)
 			{
 				auto check_from = old_s.core_availability().min();
@@ -366,7 +376,8 @@ namespace NP {
 							// This job is still incomplete but has no chance
 							// of being scheduled before its deadline anymore.
 							// Abort.
-							aborted = true;
+							
+							aborted =  !check_energy_aware_schedulability();
 							// create a dummy state for explanation purposes
 							auto frange = new_s.core_availability() + j.get_cost();
 							const State& next =
@@ -705,7 +716,7 @@ namespace NP {
 					return false; // nope
 
 				Interval<Time> st{_st};
-
+				
 				// yep, job j is a feasible successor in state s
 
 				// compute range of possible finish times
@@ -722,7 +733,9 @@ namespace NP {
 					                    st, ftimes, j.get_key());
 
 				// make sure we didn't skip any jobs
+				DM("checking for deadline miss" << std::endl);
 				check_for_deadline_misses(s, next);
+				
 
 #ifdef CONFIG_COLLECT_SCHEDULE_GRAPH
 				edges.emplace_back(&j, &s, &next, ftimes);
@@ -785,9 +798,11 @@ namespace NP {
 				}
 
 				// check for a dead end
-				if (!found_one && !all_jobs_scheduled(s))
+				if (!found_one && !all_jobs_scheduled(s)){
+					aborted = !check_energy_aware_schedulability();
+				}
 					// out of options and we didn't schedule all jobs
-					aborted = true;
+
 			}
 
 			// naive: no state merging
@@ -799,7 +814,12 @@ namespace NP {
 
 			void explore()
 			{
+				
+				// for (const Job<Time>& j : jobs) {
+				// 	DM(j.get_id() << " has deadline at " << j.get_deadline() <<  std::endl);
+				// }
 				make_initial_state();
+				
 
 				while (current_job_count < jobs.size()) {
 					unsigned long n;

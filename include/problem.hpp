@@ -7,6 +7,7 @@
 
 namespace NP {
 
+
 	// Description of a non-preemptive scheduling problem
 	template<class Time>
 	struct Scheduling_problem {
