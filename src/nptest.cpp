@@ -43,6 +43,10 @@ static std::string aborts_file;
 static bool want_multiprocessor = false;
 static unsigned int num_processors = 1;
 
+static bool want_dvfs = false;
+static std::string dvfs;
+static std::vector<float> valid_speed;
+
 #ifdef CONFIG_COLLECT_SCHEDULE_GRAPH
 static bool want_dot_graph;
 #endif
@@ -56,6 +60,7 @@ static bool continue_after_dl_miss = false;
 #ifdef CONFIG_PARALLEL
 static unsigned int num_worker_threads = 0;
 #endif
+
 
 struct Analysis_result {
 	bool schedulable;
@@ -286,6 +291,30 @@ static void print_header(){
 	          << std::endl;
 }
 
+static std::vector<float> parse_vector(std::istringstream& vector_string, char delimiter = ',') {
+        std::vector<float> vector;
+        std::string token;
+        while (std::getline(vector_string, token, delimiter)) {
+            try {
+                size_t pos;
+                float value = std::stof(token, &pos);
+				if (value > 1 || value <= 0){
+					std::cerr << "Invalid frequency range. Please add normalized frequecny from 0-1"<<std::endl;
+					vector.clear();
+					break;
+				}
+                if (pos == token.size()) {  
+                    vector.push_back(value);
+                } else {
+                    std::cerr << "Invalid frequency input"<<std::endl;
+                }
+            } catch (const std::invalid_argument&) {
+                std::cerr << "Invalid frequency input"<<std::endl;
+            }
+        }
+        return vector;
+    }
+
 int main(int argc, char** argv)
 {
 	auto parser = optparse::OptionParser();
@@ -349,6 +378,10 @@ int main(int argc, char** argv)
 	      .help("do not abort the analysis on the first deadline miss "
 	            "(default: off)");
 
+	parser.add_option("-f", "--frequency").dest("dvfs")
+	      .help("set the discrete frequency supported by the DVFS on platform")
+	      .set_default("{1}");
+
 
 	auto options = parser.parse_args(argc, argv);
 
@@ -394,6 +427,24 @@ int main(int argc, char** argv)
 		std::cerr << "Error: invalid number of processors\n" << std::endl;
 		return 1;
 	}
+
+	/////////////////////DVFS parsing////////////////////////
+	want_dvfs = options.is_set_by_user("dvfs");
+	if (want_dvfs && parser.args().size() > 1) {
+		std::cerr << "[!!] Warning: multiple job sets "
+		          << "with a single DVFS file specified."
+		          << std::endl;
+	} // Safety check
+	dvfs = (const std::string&) options.get("dvfs");
+	// std::cout << dvfs << std::endl;
+	std::istringstream dvfs_stream(dvfs);
+	valid_speed = parse_vector(dvfs_stream);
+	if (valid_speed.empty()){
+		return 4;
+	}
+	// for (float  speed: valid_speed) std::cout << speed << ' ';
+	// std::cout<<std::endl;
+	
 
 	want_rta_file = options.get("rta");
 
