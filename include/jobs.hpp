@@ -46,7 +46,7 @@ namespace NP {
 
 	private:
 		Interval<Time> arrival;
-		Interval<Time> cost;
+		Interval<Time> cost;  
 		Time deadline;
 		Priority priority;
 		JobID id;
@@ -80,6 +80,19 @@ namespace NP {
 		Speed_space get_speed_space()
 		{
 			return speed;
+		}
+
+		Interval<Time> get_ultimate_finish_time(Interval<Time> state_ultimate_start_time ){
+			/*
+			Calculate ultimate finish times for given ultimate start time interval
+			based on the available speed 
+			*/
+			Interval<Time> ultimate_time;
+			// Add floor least cost at highest speed
+			ultimate_time.a = state_ultimate_start_time.a + max(floor(least_cost() /speed.back()),1);
+			// Add ceil maximal cost at lowest speed
+			ultimate_time.b = state_ultimate_start_time.b + ceil(maximal_cost()/speed.front());
+			return ultimate_time;
 		}
 
 		void update_speed_space(Speed_space input_speed_space)
