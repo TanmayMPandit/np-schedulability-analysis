@@ -13,6 +13,7 @@
 namespace NP {
 
 	typedef std::size_t hash_value_t;
+	
 
 	struct JobID {
 		unsigned long job;
@@ -40,6 +41,8 @@ namespace NP {
 	public:
 		typedef std::vector<Job<Time>> Job_set;
 		typedef Time Priority; // Make it a time value to support EDF
+		typedef std::vector<float> Speed_space; // Set of valid speeds for the job (Energy aware speed scaling)
+		
 
 	private:
 		Interval<Time> arrival;
@@ -48,6 +51,7 @@ namespace NP {
 		Priority priority;
 		JobID id;
 		hash_value_t key;
+		Speed_space speed;
 
 		void compute_hash() {
 			auto h = std::hash<Time>{};
@@ -72,6 +76,19 @@ namespace NP {
 		{
 			compute_hash();
 		}
+
+		Speed_space get_speed_space()
+		{
+			return speed;
+		}
+
+		void update_speed_space(Speed_space input_speed_space)
+		{
+			speed = input_speed_space;
+			// std::cout << "Speed space updated" << std::endl;
+			// for (float  speeds: speed) std::cout << speeds << ' ';
+			// std::cout<<std::endl;
+		} 		
 
 		hash_value_t get_key() const
 		{

@@ -101,6 +101,31 @@ static Analysis_result analyze(
 	opts.num_buckets = problem.jobs.size();
 	opts.be_naive = want_naive;
 
+
+	////////////////////////////Add preprocessing here////////////////////////
+	if(want_dvfs){
+		std::cout << "Preprocessing" << std::endl;
+		for (NP::Job<Time> job: jobs){
+			std::vector<float> temp_speed;
+			for (float  selected_speed: valid_speed){
+				if ((job.latest_arrival() + ceil(job.maximal_cost()/selected_speed)) <= job.get_deadline()){
+					temp_speed.push_back(selected_speed);
+					// std::cout << "Job "<< job.get_job_id() << ": " << job.latest_arrival() <<" "<< ceil(job.maximal_cost()/selected_speed) <<" "<< job.get_deadline() << std::endl;
+				}
+			}
+			if (temp_speed.empty()){
+				std::cerr << "Job " 
+				<< job.get_job_id()
+				<< "has no valid speed."
+				<< "Hence, the jobset is unschedulable." 
+				<< std::endl;
+				exit(5);
+
+			}
+			job.update_speed_space(temp_speed);
+		}
+	}
+
 	// Actually call the analysis engine
 	auto space = Space::explore(problem, opts);
 
@@ -312,8 +337,12 @@ static std::vector<float> parse_vector(std::istringstream& vector_string, char d
                 std::cerr << "Invalid frequency input"<<std::endl;
             }
         }
+		sort(vector.begin(), vector.end()); // Sort all the speed seting
+		auto iter = unique(vector.begin(), vector.end()); // remove duplicate
+		vector.erase(iter, vector.end()); 
         return vector;
     }
+	
 
 int main(int argc, char** argv)
 {
@@ -434,7 +463,12 @@ int main(int argc, char** argv)
 		std::cerr << "[!!] Warning: multiple job sets "
 		          << "with a single DVFS file specified."
 		          << std::endl;
-	} // Safety check
+	} 
+	if (want_dvfs && !want_multiprocessor) {
+		std::cerr << "[!!] Warning: multiple frequency "
+		          << "without multiprocessor."
+		          << std::endl;
+	}// Safety check
 	dvfs = (const std::string&) options.get("dvfs");
 	// std::cout << dvfs << std::endl;
 	std::istringstream dvfs_stream(dvfs);
