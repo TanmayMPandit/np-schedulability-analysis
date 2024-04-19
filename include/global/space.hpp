@@ -44,11 +44,6 @@ namespace NP {
 				// doesn't yet support exploration after deadline miss
 				assert(opts.early_exit);
 
-				for (NP::Job<Time> job: prob.jobs){
-					std::cout << job.get_speed_space().size() << std::endl;
-					// std::cout << job.cost << std::endl;
-				}
-
 
 				auto s = State_space(prob.jobs, prob.dag, prob.num_processors, opts.timeout,
 				                     opts.max_depth, opts.num_buckets);

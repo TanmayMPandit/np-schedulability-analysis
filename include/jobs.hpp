@@ -43,12 +43,12 @@ namespace NP {
 		typedef std::vector<Job<Time>> Job_set;
 		typedef Time Priority; // Make it a time value to support EDF
 		typedef std::vector<float> Speed_space; // Set of valid speeds for the job (Energy aware speed scaling)
-		Interval<Time> cost; 
+		
 		
 
 	private:
 		Interval<Time> arrival;
-		
+		Interval<Time> cost; 
 		Interval<Time> high_speed_cost; 
 		Time deadline;
 		Priority priority;
@@ -104,13 +104,6 @@ namespace NP {
 			double a = std::max(1.0,floor(high_speed_cost.from()/speed.front()));
 			double b = ceil(high_speed_cost.upto()/speed.front());
 			cost = Interval<Time>(a,b);
-			// std::cout << "High speed cost is " << high_speed_cost
-			// 		<< " and the actual cost is " << get_cost()
-					// << " at speed " << speed.front() << std::endl;
-
-			// std::cout << "Speed space updated" << std::endl;
-			// for (float  speeds: speed) std::cout << speeds << ' ';
-			// std::cout<<std::endl;
 		} 		
 
 		hash_value_t get_key() const

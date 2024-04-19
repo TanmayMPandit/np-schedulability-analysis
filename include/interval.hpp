@@ -126,6 +126,12 @@ template<class T> class Interval {
 		b = std::max(until(), other.until());
 	}
 
+	void assign(const Interval<T>& other)
+	{
+		a =  other.from();
+		b =  other.until();
+	}
+
 	Interval<T> operator|(const Interval<T>& other) const
 	{
 		return merge(other);
@@ -134,6 +140,11 @@ template<class T> class Interval {
 	void operator|=(const Interval<T>& other)
 	{
 		widen(other);
+	}
+	
+	void operator=(const Interval<T>& other)
+	{
+		assign(other);
 	}
 
 	void lower_bound(T lb)

@@ -89,7 +89,7 @@ static Analysis_result analyze(
 	
 	if(want_dvfs){
 		std::cout << "Preprocessing" << std::endl;
-		for (NP::Job<Time> job: jobs){
+		for (NP::Job<Time>& job: jobs){
 			std::vector<float> temp_speed;
 			for (float  selected_speed: valid_speed){
 				if ((job.latest_arrival() + ceil(job.maximal_cost()/selected_speed)) <= job.get_deadline()){
