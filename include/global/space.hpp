@@ -314,7 +314,7 @@ namespace NP {
 			{
 				r[index] = std::pair<Time, Time>{std::min(r[index].first, range.from()),
 														 std::max(r[index].second, range.upto())};
-				DM("RTA " << index << ": " << r[index] << std::endl);
+				// DM("RTA " << index << ": " << r[index] << std::endl);
 			}
 
 			void update_finish_times(Response_times& r, const Job_index index,
@@ -322,15 +322,18 @@ namespace NP {
 			{
 				r[index] = std::pair<Time, Time>{std::min(r[index].first, range.first),
 												 std::max(r[index].second, range.second)};
-				DM("RTA " << index << ": " << r[index] << std::endl);
+				// DM("RTA " << index << ": " << r[index] << std::endl);
 			}
 
 			void update_finish_times(
 				Response_times& r, const Job<Time>& j, Interval<Time> range)
 			{
 				update_finish_times(r, index_of(j), range);
-				if (j.exceeds_deadline(range.upto()))
+				if (j.exceeds_deadline(range.upto())){
+					std::cout << "Performing energy aware speed scaling" << std::endl;
 					aborted = true;
+				}
+					
 			}
 
 			void update_finish_times(const Job<Time>& j, Interval<Time> range)

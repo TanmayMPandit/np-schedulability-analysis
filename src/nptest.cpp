@@ -464,9 +464,10 @@ int main(int argc, char** argv)
 		          << std::endl;
 	} 
 	if (want_dvfs && !want_multiprocessor) {
-		std::cerr << "[!!] Warning: multiple frequency "
-		          << "without multiprocessor."
+		std::cerr << "[!!] Error : multiple frequency "
+		          << "only supported for multiprocessor analysis."
 		          << std::endl;
+		return 4;
 	}// Safety check
 	dvfs = (const std::string&) options.get("dvfs");
 	// std::cout << dvfs << std::endl;

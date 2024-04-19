@@ -785,9 +785,9 @@ namespace NP {
 
 					DM("\n==================================================="
 					   << std::endl);
-					DM("Looking at: S"
-					   << (todo[todo_idx].front() - states.begin() + 1)
-					   << " " << s << std::endl);
+					// DM("Looking at: S"
+					//    << (todo[todo_idx].front() - states.begin() + 1)
+					//    << " " << s << std::endl);
 
 					// Identify relevant interval for next job
 					// relevant job buckets
@@ -886,9 +886,9 @@ namespace NP {
 
 					DM("\n==================================================="
 					   << std::endl);
-					DM("Looking at: S"
-					   << (todo[todo_idx].front() - states.begin() + 1)
-					   << " " << s << std::endl);
+					// DM("Looking at: S"
+					//    << (todo[todo_idx].front() - states.begin() + 1)
+					//    << " " << s << std::endl);
 
 					// Identify relevant interval for next job
 					// relevant job buckets
