@@ -86,23 +86,7 @@ static Analysis_result analyze(
     typename NP::Job<Time>::Job_set jobs = is_yaml ? NP::parse_yaml_job_file<Time>(in) : NP::parse_csv_job_file<Time>(in);
 	// Parse precedence constraints
 	typename NP::Precedence_constraints edges = is_yaml ? NP::parse_yaml_dag_file(in) : NP::parse_dag_file(dag_in);
-
-	NP::Scheduling_problem<Time> problem{
-        jobs,
-		edges,
-		NP::parse_abort_file<Time>(aborts_in),
-		num_processors};
-
-	// Set common analysis options
-	NP::Analysis_options opts;
-	opts.timeout = timeout;
-	opts.max_depth = max_depth;
-	opts.early_exit = !continue_after_dl_miss;
-	opts.num_buckets = problem.jobs.size();
-	opts.be_naive = want_naive;
-
-
-	////////////////////////////Add preprocessing here////////////////////////
+	
 	if(want_dvfs){
 		std::cout << "Preprocessing" << std::endl;
 		for (NP::Job<Time> job: jobs){
@@ -125,6 +109,21 @@ static Analysis_result analyze(
 			job.update_speed_space(temp_speed);
 		}
 	}
+
+	NP::Scheduling_problem<Time> problem{
+        jobs,
+		edges,
+		NP::parse_abort_file<Time>(aborts_in),
+		num_processors};
+
+	// Set common analysis options
+	NP::Analysis_options opts;
+	opts.timeout = timeout;
+	opts.max_depth = max_depth;
+	opts.early_exit = !continue_after_dl_miss;
+	opts.num_buckets = problem.jobs.size();
+	opts.be_naive = want_naive;
+	
 
 	// Actually call the analysis engine
 	auto space = Space::explore(problem, opts);

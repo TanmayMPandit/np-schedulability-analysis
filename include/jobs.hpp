@@ -6,6 +6,7 @@
 #include <algorithm> // for find
 #include <functional> // for hash
 #include <exception>
+#include <cmath>
 
 #include "time.hpp"
 #include "interval.hpp"
@@ -42,11 +43,13 @@ namespace NP {
 		typedef std::vector<Job<Time>> Job_set;
 		typedef Time Priority; // Make it a time value to support EDF
 		typedef std::vector<float> Speed_space; // Set of valid speeds for the job (Energy aware speed scaling)
+		Interval<Time> cost; 
 		
 
 	private:
 		Interval<Time> arrival;
-		Interval<Time> cost;  
+		
+		Interval<Time> high_speed_cost; 
 		Time deadline;
 		Priority priority;
 		JobID id;
@@ -72,7 +75,7 @@ namespace NP {
 			Time dl, Priority prio,
 			unsigned long tid = 0)
 		: arrival(arr), cost(cost),
-		  deadline(dl), priority(prio), id(id, tid)
+		  deadline(dl), priority(prio), id(id, tid), high_speed_cost(cost),speed(std::vector<float>(1.0))
 		{
 			compute_hash();
 		}
@@ -98,6 +101,13 @@ namespace NP {
 		void update_speed_space(Speed_space input_speed_space)
 		{
 			speed = input_speed_space;
+			double a = std::max(1.0,floor(high_speed_cost.from()/speed.front()));
+			double b = ceil(high_speed_cost.upto()/speed.front());
+			cost = Interval<Time>(a,b);
+			// std::cout << "High speed cost is " << high_speed_cost
+			// 		<< " and the actual cost is " << get_cost()
+					// << " at speed " << speed.front() << std::endl;
+
 			// std::cout << "Speed space updated" << std::endl;
 			// for (float  speeds: speed) std::cout << speeds << ' ';
 			// std::cout<<std::endl;
