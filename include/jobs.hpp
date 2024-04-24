@@ -104,7 +104,14 @@ namespace NP {
 			double a = std::max(1.0,floor(high_speed_cost.from()/speed.front()));
 			double b = ceil(high_speed_cost.upto()/speed.front());
 			cost = Interval<Time>(a,b);
-		} 		
+		} 
+
+		void set_cost_to_ultimate()
+		{
+			double a = std::max(1.0,floor(high_speed_cost.from()/speed.back()));
+			double b = ceil(high_speed_cost.upto()/speed.front());
+			cost = Interval<Time>(a,b);
+		}		
 
 		hash_value_t get_key() const
 		{

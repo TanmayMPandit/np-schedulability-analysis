@@ -50,6 +50,32 @@ namespace NP {
 				s.be_naive = opts.be_naive;
 				s.cpu_time.start();
 				s.explore();
+				
+				
+#ifdef CONFIG_DVFS
+				
+				if(!s.is_schedulable())
+				{
+					std::cout << "Deadline miss noticed. Energy aware scheduling initialized." << std::endl;
+					std::cout << "Deadline miss job index is "<< s.get_deadline_miss_job() << std::endl;
+					Problem ultimate_problem = prob;
+					for (NP::Job<Time>& job: ultimate_problem.jobs)
+					{
+						// Set Job cost to ultimate times
+						std::cout << "Job " << job.get_id() << " has low speed cost interval" << job.get_cost() <<std::endl;
+						job.set_cost_to_ultimate();
+						std::cout << "Job " << job.get_id() << " has ultimate interval" << job.get_cost() <<std::endl;
+						
+					}
+
+					auto ultimate = State_space(ultimate_problem.jobs, ultimate_problem.dag, ultimate_problem.num_processors, opts.timeout,
+										opts.max_depth, opts.num_buckets);
+
+					ultimate.set_ultimate_space(); // Define search space as ultimate space
+					ultimate.add_relevant_job(s.get_deadline_miss_job()); // Add deadline miss job as relevant jobs
+					ultimate.explore();
+				}
+#endif
 				s.cpu_time.stop();
 				return s;
 
@@ -109,6 +135,21 @@ namespace NP {
 			double get_cpu_time() const
 			{
 				return cpu_time;
+			}
+
+			std::size_t get_deadline_miss_job() const
+			{
+				return deadline_miss_job;
+			}
+			void set_ultimate_space()
+			{
+				std::cout << "Space is initialized as ultimate space" << std::endl;
+				is_ultimate_graph = true;
+			}
+
+			void add_relevant_job(std::size_t job)
+			{
+				relevant_jobs.push_back(job);
 			}
 
 			typedef std::deque<State> States;
@@ -209,6 +250,10 @@ namespace NP {
 
 			bool aborted;
 			bool timed_out;
+
+			std::size_t deadline_miss_job = 0;
+			bool is_ultimate_graph = false;
+			std::vector<std::size_t> relevant_jobs = std::vector<std::size_t>();
 
 			const unsigned int max_depth;
 
@@ -330,13 +375,10 @@ namespace NP {
 			{
 				update_finish_times(r, index_of(j), range);
 				if (j.exceeds_deadline(range.upto())){
-#ifdef CONFIG_DVFS
-					
-						std::cout << "Performing energy aware speed scaling" << std::endl;
-						std::cout << "Deadline miss job is " << j.get_task_id() << std::endl;
-#else
-					aborted = true;
-#endif
+					deadline_miss_job = index_of(j);
+					if(!is_ultimate_graph){
+						aborted = true;
+					}
 				}
 					
 			}
@@ -351,6 +393,7 @@ namespace NP {
 #endif
 				update_finish_times(r, j, range);
 			}
+
 
 
 			std::size_t index_of(const Job<Time>& j) const
@@ -837,6 +880,23 @@ namespace NP {
 					n = exploration_front.size();
 #endif
 
+					if(is_ultimate_graph){
+						bool all_jobs_present = true;
+						for (State& state : exploration_front) // In all of the states
+						{
+							for (std::size_t index : relevant_jobs) // If all of the relevant jobs are present
+							{
+								all_jobs_present &= !state.job_incomplete(index);
+							}
+						}
+						if (all_jobs_present)
+						{
+							std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
+							aborted = true;
+							break;
+						}
+
+					}
 					// allocate states space for next depth
 					states_storage.emplace_back();
 
@@ -899,14 +959,19 @@ namespace NP {
 								it->clear();
 						});
 #endif
-					states_storage.pop_front();
+					// states_storage.pop_front();
 #endif
 				}
+				if(is_ultimate_graph)
+				{
+					std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
+				}
+				
 
 
 #ifndef CONFIG_COLLECT_SCHEDULE_GRAPH
 				// clean out any remaining states
-				while (!states_storage.empty()) {
+				// while (!states_storage.empty()) {
 #ifdef CONFIG_PARALLEL
 					parallel_for(states_storage.front().range(),
 						[] (typename Split_states::range_type& r) {
@@ -914,8 +979,8 @@ namespace NP {
 								it->clear();
 						});
 #endif
-					states_storage.pop_front();
-				}
+					// states_storage.pop_front();
+				// }
 #endif
 
 

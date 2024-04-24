@@ -18,14 +18,14 @@ jobset:
   - Task ID: 3
     Job ID: 1
     Arrival min: 5
-    Arrival max: 5
+    Arrival max: 8
     Cost min: 1
     Cost max: 7
     Deadline: 15
     Priority: 3
   - Task ID: 4
     Job ID: 1
-    Arrival min: 8
+    Arrival min: 5
     Arrival max: 8
     Cost min: 2
     Cost max: 3
@@ -33,7 +33,7 @@ jobset:
     Priority: 4
   - Task ID: 5
     Job ID: 1
-    Arrival min: 8
+    Arrival min: 5
     Arrival max: 8
     Cost min: 1
     Cost max: 1
