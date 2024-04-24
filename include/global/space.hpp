@@ -330,8 +330,13 @@ namespace NP {
 			{
 				update_finish_times(r, index_of(j), range);
 				if (j.exceeds_deadline(range.upto())){
-					std::cout << "Performing energy aware speed scaling" << std::endl;
+#ifdef CONFIG_DVFS
+					
+						std::cout << "Performing energy aware speed scaling" << std::endl;
+						std::cout << "Deadline miss job is " << j.get_task_id() << std::endl;
+#else
 					aborted = true;
+#endif
 				}
 					
 			}

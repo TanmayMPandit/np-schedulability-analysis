@@ -407,7 +407,7 @@ int main(int argc, char** argv)
 	            "(default: off)");
 
 	parser.add_option("-f", "--frequency").dest("dvfs")
-	      .help("set the discrete frequency supported by the DVFS on platform")
+	      .help("set the discrete frequency supported by the DVFS on platform. e.g. \"0.5,0.8,1.0\"")
 	      .set_default("{1}");
 
 
@@ -457,7 +457,24 @@ int main(int argc, char** argv)
 	}
 
 	/////////////////////DVFS parsing////////////////////////
+#ifdef CONFIG_DVFS
 	want_dvfs = options.is_set_by_user("dvfs");
+	if (!want_dvfs)
+	{
+		std::cerr << "Error: DVFS support is enabled "
+		          << "but no DVFS input is provided. "
+		          << "Check usage with -h " << std::endl;
+		return 4;
+	}
+#else
+	if (options.is_set_by_user("dvfs")) {
+		std::cerr << "Error: DVFS support must be enabled "
+		          << "during compilation (CONFIG_DVFS "
+		          << "is not set)." << std::endl;
+		return 4;
+	}
+#endif
+	
 	if (want_dvfs && parser.args().size() > 1) {
 		std::cerr << "[!!] Warning: multiple job sets "
 		          << "with a single DVFS file specified."
@@ -469,13 +486,18 @@ int main(int argc, char** argv)
 		          << std::endl;
 		return 4;
 	}// Safety check
-	dvfs = (const std::string&) options.get("dvfs");
-	// std::cout << dvfs << std::endl;
-	std::istringstream dvfs_stream(dvfs);
-	valid_speed = parse_vector(dvfs_stream);
-	if (valid_speed.empty()){
-		return 4;
+
+	if (want_dvfs)
+	{
+		dvfs = (const std::string&) options.get("dvfs");
+		// std::cout << dvfs << std::endl;
+		std::istringstream dvfs_stream(dvfs);
+		valid_speed = parse_vector(dvfs_stream);
+		if (valid_speed.empty()){
+			return 4;
+		}
 	}
+	
 	// for (float  speed: valid_speed) std::cout << speed << ' ';
 	// std::cout<<std::endl;
 	
