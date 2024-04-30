@@ -43,6 +43,7 @@ namespace NP {
 		typedef std::vector<Job<Time>> Job_set;
 		typedef Time Priority; // Make it a time value to support EDF
 		typedef std::vector<float> Speed_space; // Set of valid speeds for the job (Energy aware speed scaling)
+		typedef float Energy;
 		
 		
 
@@ -55,6 +56,8 @@ namespace NP {
 		JobID id;
 		hash_value_t key;
 		Speed_space speed;
+		Energy consumption;
+
 
 		void compute_hash() {
 			auto h = std::hash<Time>{};
@@ -75,7 +78,7 @@ namespace NP {
 			Time dl, Priority prio,
 			unsigned long tid = 0)
 		: arrival(arr), cost(cost),
-		  deadline(dl), priority(prio), id(id, tid), high_speed_cost(cost),speed(std::vector<float>(1.0))
+		  deadline(dl), priority(prio), id(id, tid), high_speed_cost(cost)
 		{
 			compute_hash();
 		}
@@ -104,7 +107,36 @@ namespace NP {
 			double a = std::max(1.0,floor(high_speed_cost.from()/speed.front()));
 			double b = ceil(high_speed_cost.upto()/speed.front());
 			cost = Interval<Time>(a,b);
+			consumption = calculate_energy(5-speed.size())*cost.until(); // 5 is const needs better abstraction
 		} 
+
+		Energy get_energy() const
+		{
+			
+			return speed.empty() ? 0 : consumption ; // If no speed then empty
+			
+		}
+
+		Energy calculate_energy(size_t index)
+		{
+			// TODO: remove hardcoded dvfs values and provide everything in yaml file
+			// Energy equation and values based on Samsung Exynos 4210 Processor A9 core
+			
+			std::cout << "index is " << index <<std::endl;
+			const std::vector<std::vector<float>> dvfs_setting =
+			{
+				{1.0,1.0327},
+				{1.05,1.12870},
+				{1.10,1.2218},
+				{1.15,1.3122},
+				{1.2,1.4}
+			};
+			float vcpu = dvfs_setting[index][0];
+			float fcpu = dvfs_setting[index][1];
+			return (0.4*((0.446*vcpu*vcpu*fcpu)+(0.1793*vcpu)- 0.1527)); // assumption that only one of the core is contributing to the current job
+		}
+
+
 
 		void set_cost_to_ultimate()
 		{

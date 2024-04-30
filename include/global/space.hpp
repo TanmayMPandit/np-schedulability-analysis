@@ -74,6 +74,7 @@ namespace NP {
 					ultimate.set_ultimate_space(); // Define search space as ultimate space
 					ultimate.add_relevant_job(s.get_deadline_miss_job()); // Add deadline miss job as relevant jobs
 					ultimate.explore();
+					std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
 				}
 #endif
 				s.cpu_time.stop();
@@ -781,12 +782,21 @@ namespace NP {
 				update_finish_times(j, ftimes);
 
 				// expand the graph, merging if possible
+#ifdef CONFIG_DVFS
+				const State& next = be_naive ?
+					new_state(s, index_of(j), predecessors_of(j),
+					          st, ftimes, j.get_key()) :
+					new_or_merged_state(s, index_of(j), predecessors_of(j),
+					                    st, ftimes, j.get_key(), j.get_energy());
+#else
 				const State& next = be_naive ?
 					new_state(s, index_of(j), predecessors_of(j),
 					          st, ftimes, j.get_key()) :
 					new_or_merged_state(s, index_of(j), predecessors_of(j),
 					                    st, ftimes, j.get_key());
 
+#endif
+				
 				// make sure we didn't skip any jobs
 				check_for_deadline_misses(s, next);
 
@@ -891,7 +901,6 @@ namespace NP {
 						}
 						if (all_jobs_present)
 						{
-							std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
 							aborted = true;
 							break;
 						}
@@ -962,10 +971,7 @@ namespace NP {
 					// states_storage.pop_front();
 #endif
 				}
-				if(is_ultimate_graph)
-				{
-					std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
-				}
+				
 				
 
 

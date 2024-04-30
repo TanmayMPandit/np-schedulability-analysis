@@ -16,10 +16,12 @@ namespace NP {
 
 		typedef std::size_t Job_index;
 		typedef std::vector<Job_index> Job_precedence_set;
+		
 
 		template<class Time> class Schedule_state
 		{
 			public:
+			typedef typename Job<Time>::Energy Energy;
 
 			// initial state -- nothing yet has finished, nothing is running
 			Schedule_state(unsigned int num_processors)
@@ -39,7 +41,8 @@ namespace NP {
 				const Job_precedence_set& predecessors,
 				Interval<Time> start_times,
 				Interval<Time> finish_times,
-				hash_value_t key)
+				hash_value_t key,
+				Energy last_job_energy = 0)
 				: num_jobs_scheduled(from.num_jobs_scheduled + 1)
 				, scheduled_jobs{ from.scheduled_jobs, j }
 				, lookup_key{ from.lookup_key ^ key }
@@ -117,7 +120,9 @@ namespace NP {
 					DM(i << " -> " << pa[i] << ":" << ca[i] << std::endl);
 					core_avail.emplace_back(pa[i], ca[i]);
 				}
-
+				last_scheduled_job = j;
+				Energy new_energy = from.state_energy + last_job_energy;
+				set_energy_consumption_till_state(new_energy);
 				assert(core_avail.size() > 0);
 				DM("*** new state: constructed " << *this << std::endl);
 			}
@@ -174,7 +179,6 @@ namespace NP {
 				}
 				// move new certain jobs into the state
 				certain_jobs.swap(new_cj);
-
 				DM("+++ merged " << other << " into " << *this << std::endl);
 
 				return true;
@@ -255,15 +259,33 @@ namespace NP {
 				out << "}";
 			}
 
+			Energy get_energy_consumption_till_state() 
+			{
+				return state_energy;
+			} 
+			void set_energy_consumption_till_state(Energy energy) 
+			{
+				std::cout << "Energy consumtion till state is " << energy << "W"<< std::endl;
+				state_energy = energy;
+			} 
+
+			Job_index get_last_scheduled_job()const
+			{
+				return last_scheduled_job;
+			}
+
 			private:
 
 			const unsigned int num_jobs_scheduled;
 
+			Energy state_energy;
 			// set of jobs that have been dispatched (may still be running)
 			const Index_set scheduled_jobs;
 
 			// imprecise set of certainly running jobs
 			std::vector<std::pair<Job_index, Interval<Time>>> certain_jobs;
+
+			Job_index last_scheduled_job;
 
 			// system availability intervals
 			std::vector<Interval<Time>> core_avail;
