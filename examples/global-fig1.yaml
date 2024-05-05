@@ -33,7 +33,7 @@ jobset:
     Priority: 4
   - Task ID: 5
     Job ID: 1
-    Arrival min: 6
+    Arrival min: 7
     Arrival max: 8
     Cost min: 1
     Cost max: 1

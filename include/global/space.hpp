@@ -73,13 +73,179 @@ namespace NP {
 
 					ultimate.set_ultimate_space(); // Define search space as ultimate space
 					ultimate.add_relevant_job(s.get_deadline_miss_job()); // Add deadline miss job as relevant jobs
-					ultimate.explore();
-					std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
+					bool energy_aware_possible = true;
+					//  Make causal link array with vector for each job
+					while (energy_aware_possible)
+					{
+						ultimate.explore();
+						std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
+						// Update causal link for each job noticed till now (I not already in their) 
+						ultimate.update_causal_connections();
+
+						//  For deadline miss job create a set of causal link -> FUNCTION: get set of causal link for given job
+						std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
+						//  Initialize best solution setting storage 
+						size_t energy_efficient_link_index = 0;
+						std::vector<float> energy_efficient_speed;
+						energy_aware_possible = false;
+						//  For each link and for each decision, explore graph( check for possible miss or pruning) -> FUNCTION: given causal link and reference of S  space, check all possibilty
+							//  Possible input and initial state or space?
+							//  Possible out : update causal link index and values for each of the speeds and bool true or false for if solution exist
+						//  Once all checked, check if there exist a seeting,
+							//  If does then make the job changes and explore S  (Tricky as S is const, might need to either disable graph or update S to another graph with stored graph)
+								//  If deadline miss, update the deadline miss job and contine
+								//  else, set energy-aware-possible to false or break
+							//  else(If no possible setting), set energy-aware-possible to false or break 
+					}
 				}
 #endif
 				s.cpu_time.stop();
 				return s;
 
+			}
+
+			struct  Last_state_jobs
+			{
+				std::vector<size_t> partial_jobs;
+				std::vector<size_t> completed_jobs;
+			};
+			
+
+			void update_causal_connections()
+			{
+				//  Get list of last state jobs which dont not have complete connection before last state
+				Last_state_jobs causal_jobs = get_last_state_job();
+				
+				for (Job_index index : causal_jobs.partial_jobs)
+				{
+ 					if (!(complete_connections[index]))
+					{
+						//  Check for all of those jobs, if causally connected with any of the other jobs that are not already checked,
+						for (const NP::Job<Time>& potential_connection: jobs)
+						{
+							Job_index potential_index = index_of(potential_connection);
+							//  if other job is not in the causal connection and is not same job
+							if (!connection_recorded(index,potential_index) && (potential_index != index))
+							{
+								// CHECK CAUSAL CONNECTION
+								if (causally_connected(index,potential_index))
+								{
+									// std::cout << "Job " << index << " is causally connected to job " << potential_index << std::endl;
+								causal_connections[index].push_back(potential_index);//  If causaly connected, add it to the causal connection list 
+								}
+							}
+						}
+						if (std::find(causal_jobs.completed_jobs.begin(), causal_jobs.completed_jobs.end(), index) != causal_jobs.completed_jobs.end())
+						{
+							//  update if any newly completed jobs
+							// std::cout << "Job " << index << "'s connections are all recorded. " << std::endl;
+							complete_connections[index] = true;
+						}
+					}
+										
+				}
+				for (const NP::Job<Time>& potential_connection: jobs)
+				{
+					Job_index potential_index = index_of(potential_connection);
+					std::cout  << " Job with index " << potential_index << " is causally connected with jobs with index ";
+					for (size_t connected_index : causal_connections[potential_index] )
+					{
+						std::cout  << connected_index << ", ";
+					}
+					std::cout << std::endl;
+
+				}
+				
+				
+			}
+			bool causally_connected(Job_index j, Job_index x)
+			{
+				// Job j is causally connected with x if finish time of x intersect with start time of j. One element overlap is not considered overlap
+				std::pair<Time, Time> j_st = sta[j];
+				// std::cout << "Job " << j << " has start time "<< j_st.first << " - "<< j_st.second << std::endl;
+				std::pair<Time, Time> x_ft = rta[x];
+				// std::cout << "Job " << x << " has finish time "<< x_ft.first << " - "<< x_ft.second << std::endl;
+				bool disjoint;
+				//  Might need to change due to approach for interval intersection
+				disjoint = (x_ft.second <= j_st.first)|| (j_st.second <= x_ft.first);
+				// Working condition:  st and ft overlap and (either arrival time overlap or (no arrival time overlap with  x has higher priority than j) )
+				//  Single element overlap is not considered as at single element overlap, scheduling decisions are clear
+				const NP::Job<Time> job_j = jobs[j];
+				const NP::Job<Time> job_x = jobs[x];
+				bool arrival_time_overlap = !((job_x.latest_arrival() <= job_j.earliest_arrival())|| (job_j.latest_arrival() <= job_x.earliest_arrival()));
+				bool connected = !disjoint && (arrival_time_overlap || (!arrival_time_overlap && (job_x.get_priority()<job_j.get_priority())));
+				return connected;
+			}
+
+			bool connection_recorded(Job_index job, Job_index potential_connection)
+			{
+				return(std::find(causal_connections[job].begin(), causal_connections[job].end(), potential_connection) != causal_connections[job].end());
+			}
+
+
+			Last_state_jobs get_last_state_job()
+			{
+				
+				// Initialize the return vector
+				std::vector<size_t> jobs_till_now;
+				std::vector<size_t> jobs_completed;
+				//  For each of the job
+				for (const NP::Job<Time>& job: jobs)
+				{
+					//  Initilaize index and If index is not in complete connection vector
+					Job_index index = index_of(job);
+					if (!(complete_connections[index])) // change this to initilaized array of bool
+					{
+						//  Initilaize a bool to check if any and in all 
+						bool in_all = true;
+						bool if_any = false;
+						for (State& state : states())
+						{
+							bool job_in_state = !state.job_incomplete(index);
+							if (job_in_state) if_any = true;  // If there exist a state with this job, set if_any true
+							in_all &= job_in_state; // If job exist in this state, & with result from other states (If any without, then set to false)
+						}
+						if (if_any) jobs_till_now.push_back(index);
+						if (in_all) jobs_completed.push_back(index);
+
+					}
+				}
+				Last_state_jobs job_result ={jobs_till_now,jobs_completed,};
+				return job_result;
+
+			}
+
+
+			std::vector<std::vector<size_t>> get_causal_links()
+			{
+				//  For given set of jobs, return a vector of links
+				std::vector<std::vector<size_t>> causal_link;
+				//  Set variable for all link explored to false
+				//  Create initial link with just one vector with given job
+				//  While not all links explored,
+					//  set all link explored to true
+					//  create a temp output vcetor
+					//  For all vectors in causal link vector
+						// Make a list of jobs that have causal connection to last job in the vector
+						//  For eachof the job create a temp vector which is same ans initial and add connected jobs
+						//  Add this temp vector to tempt output vector
+						//  If job exist, then set false for all link explored 
+					//  Set causal link vector as temp vector
+
+				return causal_link;
+				
+			}
+
+			bool energy_aware_spped_scaling()
+			{
+				//  Given a set of jobs and a state or space, explore all possible scenarios and update good setting and return if solution exist or not
+				bool solution_exists = false;
+				return solution_exists;
+			}
+
+			void explore_from()
+			{
+				//  Given a state, explore from that state till certain condition
 			}
 
 			// convenience interface for tests
@@ -257,6 +423,8 @@ namespace NP {
 			std::size_t deadline_miss_job = 0;
 			bool is_ultimate_graph = false;
 			std::vector<std::size_t> relevant_jobs = std::vector<std::size_t>();
+			std::vector<bool> complete_connections;
+			std::vector<std::vector<std::size_t>> causal_connections;
 
 			const unsigned int max_depth;
 
@@ -337,6 +505,8 @@ namespace NP {
 					const Job<Time>& to   = lookup<Time>(jobs, e.second);
 					_predecessors[index_of(to)].push_back(index_of(from));
 				}
+				complete_connections.resize(jobs.size());
+				causal_connections.resize(jobs.size());
 			}
 
 			private:
@@ -380,7 +550,7 @@ namespace NP {
 				s[index] = std::pair<Time, Time>{std::min(s[index].first, range.from()),
 														 std::max(s[index].second, range.upto())};
 				// DM("Start time " << index << ": " << s[index] << std::endl);
-				std::cout << "Start time " << index << ": from " << s[index].first << " till "<< s[index].second<< std::endl;
+				// std::cout << "Start time " << index << ": from " << s[index].first << " till "<< s[index].second<< std::endl;
 			}
 
 			void update_start_times(Ultimate_start_times& s, const Job_index index,
