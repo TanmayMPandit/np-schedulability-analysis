@@ -265,7 +265,7 @@ namespace NP {
 			} 
 			void set_energy_consumption_till_state(Energy energy) 
 			{
-				std::cout << "Energy consumtion till state is " << energy << "W"<< std::endl;
+				// std::cout << "Energy consumtion till state is " << energy << "W"<< std::endl;
 				state_energy = energy;
 			} 
 

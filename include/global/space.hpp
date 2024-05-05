@@ -62,7 +62,7 @@ namespace NP {
 					for (NP::Job<Time>& job: ultimate_problem.jobs)
 					{
 						// Set Job cost to ultimate times
-						std::cout << "Job " << job.get_id() << " has low speed cost interval" << job.get_cost() <<std::endl;
+						// std::cout << "Job " << job.get_id() << " has low speed cost interval" << job.get_cost() <<std::endl;
 						job.set_cost_to_ultimate();
 						std::cout << "Job " << job.get_id() << " has ultimate interval" << job.get_cost() <<std::endl;
 						
@@ -238,12 +238,14 @@ namespace NP {
 
 			// NOTE: we don't use Interval<Time> here because the Interval sorts its arguments.
 			typedef std::vector<std::pair<Time, Time>> Response_times;
+			typedef std::vector<std::pair<Time, Time>> Ultimate_start_times;
 
 #ifdef CONFIG_COLLECT_SCHEDULE_GRAPH
 			std::deque<Edge> edges;
 #endif
 
 			Response_times rta;
+			Ultimate_start_times sta;
 
 #ifdef CONFIG_PARALLEL
 			tbb::enumerable_thread_specific<Response_times> partial_rta;
@@ -318,6 +320,7 @@ namespace NP {
 			, _predecessors(jobs.size())
 			, predecessors(_predecessors)
 			, rta(Response_times(jobs.size(), {Time_model::constants<Time>::infinity(), 0}))
+			,sta(Ultimate_start_times(jobs.size(), {Time_model::constants<Time>::infinity(), 0}))
 #ifdef CONFIG_PARALLEL
 			, partial_rta(Response_times(jobs.size(), {Time_model::constants<Time>::infinity(), 0}))
 #endif
@@ -370,6 +373,30 @@ namespace NP {
 												 std::max(r[index].second, range.second)};
 				// DM("RTA " << index << ": " << r[index] << std::endl);
 			}
+
+			void update_start_times(Ultimate_start_times& s, const Job_index index,
+			                         Interval<Time> range)
+			{
+				s[index] = std::pair<Time, Time>{std::min(s[index].first, range.from()),
+														 std::max(s[index].second, range.upto())};
+				// DM("Start time " << index << ": " << s[index] << std::endl);
+				std::cout << "Start time " << index << ": from " << s[index].first << " till "<< s[index].second<< std::endl;
+			}
+
+			void update_start_times(Ultimate_start_times& s, const Job_index index,
+									 std::pair<Time, Time> range)
+			{
+				s[index] = std::pair<Time, Time>{std::min(s[index].first, range.first),
+												 std::max(s[index].second, range.second)};
+				// DM("Start time " << index << ": " << s[index] << std::endl);
+			}
+
+			void update_start_times(const Job<Time>& j, Interval<Time> range)
+			{
+				Ultimate_start_times& r = sta;
+				update_start_times(r, index_of(j), range);
+			}
+
 
 			void update_finish_times(
 				Response_times& r, const Job<Time>& j, Interval<Time> range)
@@ -780,6 +807,7 @@ namespace NP {
 
 				// update finish-time estimates
 				update_finish_times(j, ftimes);
+				update_start_times(j,st);
 
 				// expand the graph, merging if possible
 #ifdef CONFIG_DVFS

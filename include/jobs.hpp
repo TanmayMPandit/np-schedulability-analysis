@@ -122,7 +122,7 @@ namespace NP {
 			// TODO: remove hardcoded dvfs values and provide everything in yaml file
 			// Energy equation and values based on Samsung Exynos 4210 Processor A9 core
 			
-			std::cout << "index is " << index <<std::endl;
+			// std::cout << "index is " << index <<std::endl;
 			const std::vector<std::vector<float>> dvfs_setting =
 			{
 				{1.0,1.0327},
