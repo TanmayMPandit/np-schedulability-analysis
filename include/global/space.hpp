@@ -81,9 +81,24 @@ namespace NP {
 						std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
 						// Update causal link for each job noticed till now (I not already in their) 
 						ultimate.update_causal_connections();
-
+							std::cout << "Deadline miss job is " << ultimate.relevant_jobs.back()<< std::endl;
 						//  For deadline miss job create a set of causal link -> FUNCTION: get set of causal link for given job
 						std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
+						/////////////////// Debugging//////////////////////////////////
+						size_t causal_link_index = 0;
+						for (std::vector<size_t> link : causal_links)
+						{
+							std::cout  << " Causal link " << causal_link_index << " is : ";
+							for (size_t connection : link)
+							{
+								std::cout  << connection << " => ";
+							}
+							std::cout << std::endl;
+							causal_link_index += 1;
+
+						}
+				////////////////////////////////////////////////////////////
+						
 						//  Initialize best solution setting storage 
 						size_t energy_efficient_link_index = 0;
 						std::vector<float> energy_efficient_speed;
@@ -141,9 +156,9 @@ namespace NP {
 							// std::cout << "Job " << index << "'s connections are all recorded. " << std::endl;
 							complete_connections[index] = true;
 						}
-					}
-										
+					}					
 				}
+				///////////////////////////////Debugging//////////////////////////////////////////
 				for (const NP::Job<Time>& potential_connection: jobs)
 				{
 					Job_index potential_index = index_of(potential_connection);
@@ -155,6 +170,7 @@ namespace NP {
 					std::cout << std::endl;
 
 				}
+				///////////////////////////////////////////////////////////////////////////////////
 				
 				
 			}
@@ -224,17 +240,55 @@ namespace NP {
 				//  For given set of jobs, return a vector of links
 				std::vector<std::vector<size_t>> causal_link;
 				//  Set variable for all link explored to false
+				bool all_link_explored = false;
 				//  Create initial link with just one vector with given job
+				std::vector<size_t> initial_link;
+				initial_link.push_back(relevant_jobs.back());
+				causal_link.push_back(initial_link);
 				//  While not all links explored,
+				while (!all_link_explored)
+				{
 					//  set all link explored to true
+					all_link_explored = true;
 					//  create a temp output vcetor
+					std::vector<std::vector<size_t>> temp_links;
 					//  For all vectors in causal link vector
+					for (std::vector<size_t> link : causal_link)
+					{
 						// Make a list of jobs that have causal connection to last job in the vector
-						//  For eachof the job create a temp vector which is same ans initial and add connected jobs
-						//  Add this temp vector to tempt output vector
-						//  If job exist, then set false for all link explored 
+						std::vector<std::size_t> next_connections = causal_connections[link.back()];
+						//  For eachof the job 
+						bool added_connection = false;
+						for (size_t connection : next_connections)
+						{
+							//  Check if job can be added to the causal link
+							// Condition 1: Connected job cant already exist in link (Infinite link)
+							bool in_link = std::find(link.begin(), link.end(), connection) != link.end();
+							// //  Condition 2: Íf this connection has connection to deadline miss job and deadline miss job does not have this connection, then this happens after deadline miss job
+							bool deadline_miss_job_in_connection = (std::find(causal_connections[connection].begin(), causal_connections[connection].end(), relevant_jobs.back()) != causal_connections[connection].end()); 
+							bool connection_in_deadline_miss_job = (std::find(causal_connections[relevant_jobs.back()].begin(), causal_connections[relevant_jobs.back()].end(),connection) != causal_connections[relevant_jobs.back()].end());
+							bool follow_order = deadline_miss_job_in_connection ? connection_in_deadline_miss_job : true;  //if dm job in connection then check other way, if not then keep true
+							bool can_connect = !in_link && follow_order; // Can this connection be in the link
+							// bool can_connect = !in_link;
+							if (can_connect)
+							{
+								std::vector<std::size_t> updated_link = link;
+								// create a temp vector which is same ans initial and add connected jobs
+								updated_link.push_back(connection);
+								//  Add this temp vector to tempt output vector
+								temp_links.push_back(updated_link);
+								//  If job exist, then set false for all link explored 
+								all_link_explored = false;
+								added_connection = true;
+							}
+						}
+						//  if no new connection added then add the old link
+						if (!added_connection) temp_links.push_back(link);
+					}
 					//  Set causal link vector as temp vector
-
+					causal_link = temp_links;
+				}
+				std::cout << "causal link consist of " << causal_link.size() << " links" << std::endl;
 				return causal_link;
 				
 			}
