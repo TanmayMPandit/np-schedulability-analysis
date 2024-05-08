@@ -162,6 +162,7 @@ namespace NP {
 			{
 				// Job j is causally connected with x if finish time of x intersect with start time of j. One element overlap is not considered overlap
 				std::pair<Time, Time> j_st = sta[j];
+				std::pair<Time, Time> x_st = sta[x];
 				// std::cout << "Job " << j << " has start time "<< j_st.first << " - "<< j_st.second << std::endl;
 				std::pair<Time, Time> x_ft = rta[x];
 				// std::cout << "Job " << x << " has finish time "<< x_ft.first << " - "<< x_ft.second << std::endl;
@@ -173,7 +174,9 @@ namespace NP {
 				const NP::Job<Time> job_j = jobs[j];
 				const NP::Job<Time> job_x = jobs[x];
 				bool arrival_time_overlap = !((job_x.latest_arrival() <= job_j.earliest_arrival())|| (job_j.latest_arrival() <= job_x.earliest_arrival()));
-				bool connected = !disjoint && (arrival_time_overlap || (!arrival_time_overlap && (job_x.get_priority()<job_j.get_priority())));
+				bool connected = !disjoint && (arrival_time_overlap 
+				|| (!arrival_time_overlap && (job_x.get_priority()<job_j.get_priority()))
+				|| ((x_st.first < job_j.earliest_arrival()) && (job_x.get_priority() > job_j.get_priority())));
 				return connected;
 			}
 
