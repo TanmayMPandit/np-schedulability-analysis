@@ -97,20 +97,28 @@ namespace NP {
 							causal_link_index += 1;
 
 						}
-				////////////////////////////////////////////////////////////
-						
+						////////////////////////////////////////////////////////////
 						//  Initialize best solution setting storage 
 						size_t energy_efficient_link_index = 0;
 						std::vector<float> energy_efficient_speed;
+						float energy_efficient_consumption = 0.0;
 						energy_aware_possible = false;
-						//  For each link and for each decision, explore graph( check for possible miss or pruning) -> FUNCTION: given causal link and reference of S  space, check all possibilty
-							//  Possible input and initial state or space?
-							//  Possible out : update causal link index and values for each of the speeds and bool true or false for if solution exist
+						energy_aware_possible = s.speed_scale(causal_links);
 						//  Once all checked, check if there exist a seeting,
-							//  If does then make the job changes and explore S  (Tricky as S is const, might need to either disable graph or update S to another graph with stored graph)
-								//  If deadline miss, update the deadline miss job and contine
-								//  else, set energy-aware-possible to false or break
-							//  else(If no possible setting), set energy-aware-possible to false or break 
+						if (energy_aware_possible)
+						{
+							std::cout  << " Can solve this " << std::endl ;
+							energy_aware_possible = false;
+							//  Somehow update S, speed, exploration time and graph
+							// Run S and wait for complition
+							//  If unschedulable, update deadline miss job and set energy_aware_possible to true
+							//  If schedulable, work done!!!!!!!!!!
+						}
+						else
+						{
+							std::cout  << " Can't solve this " << std::endl ;
+							// Cant solve, so return that unschedulable and return some type of result
+						}
 					}
 				}
 #endif
@@ -124,6 +132,69 @@ namespace NP {
 				std::vector<size_t> partial_jobs;
 				std::vector<size_t> completed_jobs;
 			};
+			
+			std::deque<State> get_scaling_state(std::vector<size_t> jobs_to_scale)
+			{
+				// Return states which does not contain any of the jobs 
+				std::deque<State> scaling_initial_state;
+				bool states_found = false; 
+				size_t index;
+				for (size_t i = 2; !states_found ; i++)
+				{
+					index = states_storage.size() - i;
+					// std::cout << "Index for state is " << index << std::endl;
+					states_found = true;
+					for (State& selected_state : states_storage[index])
+					{
+						for (size_t job : jobs_to_scale)
+						{
+							// std::cout << "Job " << job << " in state "<< selected_state <<  " is incomplete ? " << selected_state.job_incomplete(job) << std::endl;
+							states_found &= selected_state.job_incomplete(job); // Check if all of the jobs in the job to scale are incomplete in all of the the states in this level
+						}
+					}
+					if (states_found)
+					{
+						for (State& selected_state : states_storage[index])
+						{
+							scaling_initial_state.emplace_back(selected_state);
+						}
+					}
+				}
+				return scaling_initial_state;
+			}
+
+			bool speed_scale(std::vector<std::vector<size_t>> links)
+			{
+				bool speed_scaling_solution_exist = false;
+				//  Try for all causal link
+				for (std::vector<size_t> link : links)
+				{
+					std::vector<size_t> scaling_jobs;
+					// For each link, starting from the first,
+					for (size_t job : link)
+					{
+						// Add current job to jobs to change
+						scaling_jobs.push_back(job);
+						std::deque<State> temp_state = get_scaling_state(scaling_jobs);
+						// std::cout << "Last state consist of states: ";
+						// for (State given_state : temp_state)
+						// {
+						// 	std::cout << given_state << " , ";
+						// }
+						// std::cout << std::endl;
+						// Start from state before any of the job to change is dispatched
+						
+						// Start always by chnaging last job and move upward
+						//  Explore and check if if feasible, if not delete that space and create new space at states as before and try new speed space.
+						//  If found feasible and better energy than stored, update and continue
+					}	
+				}
+				//  Necessary refactor: make a reconfigurable space for speed scaling exploration. such that we can set start space each time and change job execution times 
+				return speed_scaling_solution_exist;
+			}
+
+			
+
 			
 
 			void update_causal_connections()
@@ -293,17 +364,6 @@ namespace NP {
 				
 			}
 
-			bool energy_aware_spped_scaling()
-			{
-				//  Given a set of jobs and a state or space, explore all possible scenarios and update good setting and return if solution exist or not
-				bool solution_exists = false;
-				return solution_exists;
-			}
-
-			void explore_from()
-			{
-				//  Given a state, explore from that state till certain condition
-			}
 
 			// convenience interface for tests
 			static State_space explore_naively(

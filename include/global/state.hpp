@@ -293,7 +293,7 @@ namespace NP {
 			const hash_value_t lookup_key;
 
 			// no accidental copies
-			Schedule_state(const Schedule_state& origin)  = delete;
+			// Schedule_state(const Schedule_state& origin)  = delete;
 		};
 
 	}

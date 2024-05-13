@@ -98,7 +98,7 @@ namespace NP {
 			Set_type the_set;
 
 			// no accidental copies
-			Index_set(const Index_set& origin) = delete;
+			// Index_set(const Index_set& origin) = delete;
 		};
 }
 
