@@ -37,6 +37,13 @@ namespace NP {
 			typedef typename Scheduling_problem<Time>::Workload Workload;
 			typedef Schedule_state<Time> State;
 
+			struct  speed_scaling_result
+			{
+				bool solution_found;
+				std::vector<size_t> energy_efficient_link;
+				std::vector<std::vector<float>> energy_efficient_speed;
+			};
+
 			static State_space explore(
 					const Problem& prob,
 					const Analysis_options& opts)
@@ -101,7 +108,8 @@ namespace NP {
 						//  Initialize best solution setting storage 
 						
 						energy_aware_possible = false;
-						energy_aware_possible = s.speed_scale(causal_links,prob,opts);
+						speed_scaling_result scaling_result = s.speed_scale(causal_links,prob,opts);
+						energy_aware_possible = scaling_result.solution_found;
 						//  Once all checked, check if there exist a seeting,
 						if (energy_aware_possible)
 						{
@@ -161,12 +169,15 @@ namespace NP {
 				return scaling_initial_state;
 			}
 
-			bool speed_scale(std::vector<std::vector<size_t>> links, const Problem& prob, const Analysis_options& opts)
+			
+
+
+			speed_scaling_result speed_scale(std::vector<std::vector<size_t>> links, const Problem& prob, const Analysis_options& opts)
 			{
 				// Change return type to result
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
-				std::vector<float> energy_efficient_speed; // intialize this with existing speed space
+				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
 				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
 				//  Try for all causal link
 				for (std::vector<size_t> link : links)
@@ -237,7 +248,8 @@ namespace NP {
 					}	
 				}
 				//  Necessary refactor: make a reconfigurable space for speed scaling exploration. such that we can set start space each time and change job execution times 
-				return speed_scaling_solution_exist;
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				return result;
 			}
 
 			void set_energy_upper_threshold(float threshold)
