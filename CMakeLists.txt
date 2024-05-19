@@ -37,12 +37,7 @@ elseif (PARALLEL_RUN)
     add_compile_definitions(CONFIG_PARALLEL)
 endif ()
 
-if (USE_DVFS)
-    add_compile_definitions(CONFIG_DVFS)
-    if (PARALLEL_RUN)
-        message(WARNING "Energy aware scheduling is not implemented for parallel mode")
-    endif()
-endif ()
+
 
 if (USE_JE_MALLOC)
     find_library(ALLOC_LIB NAMES jemalloc)
@@ -87,6 +82,13 @@ add_executable(runtests ${TEST_SOURCES} ${SOURCES})
 
 set(NPTEST_SOURCES src/nptest.cpp lib/src/OptionParser.cpp)
 add_executable(nptest ${NPTEST_SOURCES})
+
+if (USE_DVFS)
+    target_compile_definitions(nptest PUBLIC  CONFIG_DVFS)
+    if (PARALLEL_RUN)
+        message(WARNING "Energy aware scheduling is not implemented for parallel mode")
+    endif()
+endif ()
 
 target_link_libraries(nptest ${CORE_LIBS})
 target_link_libraries(runtests ${CORE_LIBS})

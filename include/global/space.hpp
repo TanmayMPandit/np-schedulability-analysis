@@ -178,6 +178,7 @@ namespace NP {
 						scaling_jobs.push_back(job);
 						//  Make a copy of jobset
 						Workload jobset = jobs;
+						Workload jobset_for_speed = jobs; //Need to refactor
 						std::deque<State> temp_state = get_scaling_state(scaling_jobs);
 						bool not_feasible = true;
 						// While not feasible
@@ -194,6 +195,7 @@ namespace NP {
 				                     opts.max_depth, opts.num_buckets);
 							scaling_space.set_explore_space(); // Define exploration space as ultimate space
 							for (size_t job : scaling_jobs) scaling_space.add_relevant_job(job);
+							scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
 							scaling_space.explore();
 							//  Check pruning based on causal connection 
 							if (scaling_space.is_schedulable())
@@ -204,14 +206,29 @@ namespace NP {
 									// Update energy consumption
 									// Update link
 									//  Update jobset speed to energy efficient jobset
-
+								speed_scaling_solution_exist = true;
 								not_feasible = false;
 							}
 							else
 							{
-								// Function : find the first job index out of scaling job which more than 1 speed
-								//  		  Remove lowest speed and for all index before set to initial available speed
-								//  		  If all jobs have only one speed then return -1 
+								int current_changing_job = get_scaling_job_index(scaling_jobs,jobset);
+								if (current_changing_job == -1)
+								{
+									// No job left to change
+									not_feasible = false;
+								}
+								else
+								{
+									// Remove lowest speed and for all index before set to initial available speed
+									std::vector<float> speed = jobset[scaling_jobs[current_changing_job]].get_speed_space();
+									speed.erase(speed.begin());
+									jobset[scaling_jobs[current_changing_job]].update_speed_space(speed);
+									for (int i = 0; i < current_changing_job; i++)
+									{
+										//  For each job before to initial availanble speed
+										jobset[scaling_jobs[i]].update_speed_space(jobset_for_speed[scaling_jobs[i]].get_speed_space());
+									}
+								}		
 							}
 							// BENCHMARKING:  make a histogram of levels searched i.e if a optimal value updated, then check the size of scaling job and update in the histogram of size of num jobs
 							// Links providing better result than other
@@ -223,8 +240,28 @@ namespace NP {
 				return speed_scaling_solution_exist;
 			}
 
-			
-			
+			void set_energy_upper_threshold(float threshold)
+			{
+				Upper_energy_threshold = threshold;
+			}
+
+			int get_scaling_job_index(std::vector<size_t> scaling_jobset , Workload jobset)
+			{
+				// Function : find the first job index out of scaling job (Index wrt scaling jobs) which more than 1 speed
+				//  		  If all jobs have only one speed then return -1 
+				int scaling_index = 0; 
+				for (size_t job: scaling_jobset)
+				{
+					if (jobset[job].get_speed_space().size() > 1)
+					{
+						return scaling_index;
+					}
+					else{
+						scaling_index++;
+					}
+				}
+				return -1;  // If no job has more than 1 speed then return -1
+			}
 
 			void update_causal_connections()
 			{
@@ -576,6 +613,7 @@ namespace NP {
 			std::size_t deadline_miss_job = 0;
 			bool is_ultimate_graph = false;
 			bool is_explore_graph = false;
+			float Upper_energy_threshold;
 			std::vector<std::size_t> relevant_jobs = std::vector<std::size_t>();
 			std::vector<bool> complete_connections;
 			std::vector<std::vector<std::size_t>> causal_connections;
