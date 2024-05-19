@@ -205,7 +205,7 @@ namespace NP {
 							auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
 				                     opts.max_depth, opts.num_buckets);
 							scaling_space.set_explore_space(); // Define exploration space as ultimate space
-							for (size_t job : scaling_jobs) scaling_space.add_relevant_job(job);
+							scaling_space.add_relevant_job(scaling_jobs.front());
 							scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
 							scaling_space.explore();
 							//  Check pruning based on causal connection 
@@ -217,11 +217,15 @@ namespace NP {
 									// Update energy consumption
 									// Update link
 									//  Update jobset speed to energy efficient jobset
+
+								std::cout << " Max energy consumption is " << scaling_space.get_space_energy_consumption() << std::endl;
 								speed_scaling_solution_exist = true;
 								not_feasible = false;
 							}
 							else
 							{
+
+								// std::cout << "Unschedulable" << std::endl;
 								int current_changing_job = get_scaling_job_index(scaling_jobs,jobset);
 								if (current_changing_job == -1)
 								{
@@ -230,9 +234,11 @@ namespace NP {
 								}
 								else
 								{
+									
 									// Remove lowest speed and for all index before set to initial available speed
 									std::vector<float> speed = jobset[scaling_jobs[current_changing_job]].get_speed_space();
 									speed.erase(speed.begin());
+									// std::cout << "Reducing spped for the job "  << scaling_jobs[current_changing_job]  << " to "<< speed.front() << std::endl;
 									jobset[scaling_jobs[current_changing_job]].update_speed_space(speed);
 									for (int i = 0; i < current_changing_job; i++)
 									{
@@ -252,6 +258,17 @@ namespace NP {
 				return result;
 			}
 
+			float get_space_energy_consumption()
+			{
+				float energy_consumption = 0.0;
+				for (State& selected_state : states_storage.back())
+				{
+					// std::cout << "Energy consumption of " << selected_state << " is " << selected_state.get_energy_consumption_till_state() << std::endl;
+					energy_consumption = std::max(energy_consumption,selected_state.get_energy_consumption_till_state());
+				}
+				return energy_consumption;
+			}
+
 			void set_energy_upper_threshold(float threshold)
 			{
 				Upper_energy_threshold = threshold;
@@ -264,14 +281,17 @@ namespace NP {
 				int scaling_index = 0; 
 				for (size_t job: scaling_jobset)
 				{
+					// std::cout << "Scaling job has " << job  << " , ";
 					if (jobset[job].get_speed_space().size() > 1)
 					{
+						// std::cout << " changing job at index " << scaling_index <<std::endl; 
 						return scaling_index;
 					}
 					else{
 						scaling_index++;
 					}
 				}
+				// std::cout << std::endl;
 				return -1;  // If no job has more than 1 speed then return -1
 			}
 
@@ -511,7 +531,7 @@ namespace NP {
 
 			void set_explore_space()
 			{
-				std::cout << "Space is initialized as explore space" << std::endl;
+				// std::cout << "Space is initialized as explore space" << std::endl;
 				is_ultimate_graph = true;
 				is_explore_graph = true;
 			}
@@ -778,7 +798,8 @@ namespace NP {
 				update_finish_times(r, index_of(j), range);
 				if (j.exceeds_deadline(range.upto())){
 					deadline_miss_job = index_of(j);
-					if(!is_ultimate_graph){
+					if(!is_ultimate_graph || is_explore_graph){
+						// std::cout << "Job " << j.get_id() << " missed the deadline" << std::endl; 
 						aborted = true;
 					}
 				}
