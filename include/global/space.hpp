@@ -99,16 +99,14 @@ namespace NP {
 						}
 						////////////////////////////////////////////////////////////
 						//  Initialize best solution setting storage 
-						size_t energy_efficient_link_index = 0;
-						std::vector<float> energy_efficient_speed;
-						float energy_efficient_consumption = 0.0;
+						
 						energy_aware_possible = false;
-						energy_aware_possible = s.speed_scale(causal_links);
+						energy_aware_possible = s.speed_scale(causal_links,prob,opts);
 						//  Once all checked, check if there exist a seeting,
 						if (energy_aware_possible)
 						{
 							std::cout  << " Can solve this " << std::endl ;
-							energy_aware_possible = false;
+							energy_aware_possible = false; //Just to avoid infinite loop fpr now
 							//  Somehow update S, speed, exploration time and graph
 							// Run S and wait for complition
 							//  If unschedulable, update deadline miss job and set energy_aware_possible to true
@@ -163,30 +161,62 @@ namespace NP {
 				return scaling_initial_state;
 			}
 
-			bool speed_scale(std::vector<std::vector<size_t>> links)
+			bool speed_scale(std::vector<std::vector<size_t>> links, const Problem& prob, const Analysis_options& opts)
 			{
+				// Change return type to result
 				bool speed_scaling_solution_exist = false;
+				std::vector<size_t> energy_efficient_link;
+				std::vector<float> energy_efficient_speed; // intialize this with existing speed space
+				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
 				//  Try for all causal link
 				for (std::vector<size_t> link : links)
 				{
 					std::vector<size_t> scaling_jobs;
 					// For each link, starting from the first,
 					for (size_t job : link)
-					{
-						// Add current job to jobs to change
+					{ 
 						scaling_jobs.push_back(job);
+						//  Make a copy of jobset
+						Workload jobset = jobs;
 						std::deque<State> temp_state = get_scaling_state(scaling_jobs);
-						// std::cout << "Last state consist of states: ";
-						// for (State given_state : temp_state)
-						// {
-						// 	std::cout << given_state << " , ";
-						// }
-						// std::cout << std::endl;
-						// Start from state before any of the job to change is dispatched
+						bool not_feasible = true;
+						// While not feasible
+						while (not_feasible)
+						{
+							// Set the sclaing jobs to ultimate speed
+							// for (size_t job : scaling_jobs)
+							// {
+							// 	jobset[job].set_cost_to_ultimate();
+							// }
+
+							// Create an ultimate space with scaling jobs in relevant jobs
+							auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+				                     opts.max_depth, opts.num_buckets);
+							scaling_space.set_explore_space(); // Define exploration space as ultimate space
+							for (size_t job : scaling_jobs) scaling_space.add_relevant_job(job);
+							scaling_space.explore();
+							//  Check pruning based on causal connection 
+							if (scaling_space.is_schedulable())
+							{
+								//  If feasible, store/update
+								// Get energy consumption : FUNCTION: get max of energy consumption from the states
+								// If energy consumption is less
+									// Update energy consumption
+									// Update link
+									//  Update jobset speed to energy efficient jobset
+
+								not_feasible = false;
+							}
+							else
+							{
+								// Function : find the first job index out of scaling job which more than 1 speed
+								//  		  Remove lowest speed and for all index before set to initial available speed
+								//  		  If all jobs have only one speed then return -1 
+							}
+							// BENCHMARKING:  make a histogram of levels searched i.e if a optimal value updated, then check the size of scaling job and update in the histogram of size of num jobs
+							// Links providing better result than other
+						}
 						
-						// Start always by chnaging last job and move upward
-						//  Explore and check if if feasible, if not delete that space and create new space at states as before and try new speed space.
-						//  If found feasible and better energy than stored, update and continue
 					}	
 				}
 				//  Necessary refactor: make a reconfigurable space for speed scaling exploration. such that we can set start space each time and change job execution times 
@@ -194,7 +224,6 @@ namespace NP {
 			}
 
 			
-
 			
 
 			void update_causal_connections()
@@ -431,6 +460,13 @@ namespace NP {
 				is_ultimate_graph = true;
 			}
 
+			void set_explore_space()
+			{
+				std::cout << "Space is initialized as explore space" << std::endl;
+				is_ultimate_graph = true;
+				is_explore_graph = true;
+			}
+
 			void add_relevant_job(std::size_t job)
 			{
 				relevant_jobs.push_back(job);
@@ -539,6 +575,7 @@ namespace NP {
 
 			std::size_t deadline_miss_job = 0;
 			bool is_ultimate_graph = false;
+			bool is_explore_graph = false;
 			std::vector<std::size_t> relevant_jobs = std::vector<std::size_t>();
 			std::vector<bool> complete_connections;
 			std::vector<std::vector<std::size_t>> causal_connections;
@@ -1216,11 +1253,16 @@ namespace NP {
 						}
 						if (all_jobs_present)
 						{
-							aborted = true;
+							// aborted = true; It does not mean unschedulable
 							break;
 						}
 
 					}
+					if (is_explore_graph)
+					{
+						// Add energy consumption and causal connection based pruning
+					}
+
 					// allocate states space for next depth
 					states_storage.emplace_back();
 
