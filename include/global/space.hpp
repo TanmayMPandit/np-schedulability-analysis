@@ -209,7 +209,7 @@ namespace NP {
 							// Create an ultimate space with scaling jobs in relevant jobs
 							auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
 				                     opts.max_depth, opts.num_buckets);
-							scaling_space.set_explore_space(); // Define exploration space as ultimate space
+							scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
 							for (size_t job : scaling_jobs) scaling_space.add_relevant_job(job);
 							scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
 							scaling_space.explore();
@@ -555,11 +555,13 @@ namespace NP {
 				is_ultimate_graph = true;
 			}
 
-			void set_explore_space()
+			void set_explore_space(std::deque<State> starting_states)
 			{
 				// std::cout << "Space is initialized as explore space" << std::endl;
 				is_ultimate_graph = true;
 				is_explore_graph = true;
+				states_storage.push_back(starting_states);
+				current_job_count = starting_states.front().number_of_scheduled_jobs();
 			}
 
 			void add_relevant_job(std::size_t job)
@@ -1324,7 +1326,7 @@ namespace NP {
 
 			void explore()
 			{
-				make_initial_state();
+				if(!is_explore_graph) make_initial_state();
 
 				while (current_job_count < jobs.size()) {
 					unsigned long n;
