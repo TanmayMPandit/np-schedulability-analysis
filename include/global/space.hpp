@@ -178,6 +178,11 @@ namespace NP {
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
+				for (NP::Job<Time> j:jobs)
+				{
+					// std::cout << "Job "<< j.get_id() << " has lowest speed of " <<  j.get_speed_space().front() <<std::endl;
+					energy_efficient_speed.push_back(j.get_speed_space());
+				}
 				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
 				//  Try for all causal link
 				for (std::vector<size_t> link : links)
@@ -212,13 +217,23 @@ namespace NP {
 							if (scaling_space.is_schedulable())
 							{
 								//  If feasible, store/update
-								// Get energy consumption : FUNCTION: get max of energy consumption from the states
 								// If energy consumption is less
+								// std::cout << " Max energy consumption is " << scaling_space.get_space_energy_consumption() << std::endl;
+								float energy_consumption = scaling_space.get_space_energy_consumption();
+								if (energy_consumption < energy_efficient_consumption)
+								{
 									// Update energy consumption
 									// Update link
 									//  Update jobset speed to energy efficient jobset
+									energy_efficient_consumption = energy_consumption;
+									energy_efficient_link = link;
+									for (size_t job : link)
+									{
+										// std::cout << "Job "<< job << " has updated lowest speed of " <<  jobset[job].get_speed_space().front() <<std::endl;
+										energy_efficient_speed[job] = jobset[job].get_speed_space();
+									}
 
-								std::cout << " Max energy consumption is " << scaling_space.get_space_energy_consumption() << std::endl;
+								}
 								speed_scaling_solution_exist = true;
 								not_feasible = false;
 							}
