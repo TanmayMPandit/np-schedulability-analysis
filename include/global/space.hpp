@@ -210,7 +210,7 @@ namespace NP {
 							auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
 				                     opts.max_depth, opts.num_buckets);
 							scaling_space.set_explore_space(); // Define exploration space as ultimate space
-							scaling_space.add_relevant_job(scaling_jobs.front());
+							for (size_t job : scaling_jobs) scaling_space.add_relevant_job(job);
 							scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
 							scaling_space.explore();
 							//  Check pruning based on causal connection 
@@ -218,13 +218,16 @@ namespace NP {
 							{
 								//  If feasible, store/update
 								// If energy consumption is less
-								// std::cout << " Max energy consumption is " << scaling_space.get_space_energy_consumption() << std::endl;
+								std::cout << " Max energy consumption is " << scaling_space.get_space_energy_consumption()  << " and upper threshold is " << energy_efficient_consumption << std::endl;
+								for (size_t job : scaling_jobs)
+									{
+										std::cout << "Job "<< job << " has solution lowest speed of " <<  jobset[job].get_speed_space().front() <<std::endl;
+										// energy_efficient_speed[job] = jobset[job].get_speed_space();
+									}
 								float energy_consumption = scaling_space.get_space_energy_consumption();
 								if (energy_consumption < energy_efficient_consumption)
 								{
-									// Update energy consumption
-									// Update link
-									//  Update jobset speed to energy efficient jobset
+									std::cout << "best solution updated" << std::endl;
 									energy_efficient_consumption = energy_consumption;
 									energy_efficient_link = link;
 									for (size_t job : link)
@@ -235,10 +238,8 @@ namespace NP {
 
 								}
 								speed_scaling_solution_exist = true;
-								not_feasible = false;
 							}
-							else
-							{
+							
 
 								// std::cout << "Unschedulable" << std::endl;
 								int current_changing_job = get_scaling_job_index(scaling_jobs,jobset);
@@ -249,11 +250,10 @@ namespace NP {
 								}
 								else
 								{
-									
 									// Remove lowest speed and for all index before set to initial available speed
 									std::vector<float> speed = jobset[scaling_jobs[current_changing_job]].get_speed_space();
 									speed.erase(speed.begin());
-									// std::cout << "Reducing spped for the job "  << scaling_jobs[current_changing_job]  << " to "<< speed.front() << std::endl;
+									std::cout << "Reducing speed for the job "  << scaling_jobs[current_changing_job]  << " to "<< speed.front() << std::endl;
 									jobset[scaling_jobs[current_changing_job]].update_speed_space(speed);
 									for (int i = 0; i < current_changing_job; i++)
 									{
@@ -261,7 +261,7 @@ namespace NP {
 										jobset[scaling_jobs[i]].update_speed_space(jobset_for_speed[scaling_jobs[i]].get_speed_space());
 									}
 								}		
-							}
+							
 							// BENCHMARKING:  make a histogram of levels searched i.e if a optimal value updated, then check the size of scaling job and update in the histogram of size of num jobs
 							// Links providing better result than other
 						}
@@ -378,6 +378,17 @@ namespace NP {
 				|| (!arrival_time_overlap && (job_x.get_priority()<job_j.get_priority()))
 				|| ((x_st.first < job_j.earliest_arrival()) && (job_x.get_priority() > job_j.get_priority())));
 				return connected;
+			}
+
+			bool causally_overlapped(Job_index j, Job_index x)
+			{
+				// Job j is causally connected with x if finish time of x intersect with start time of j. One element overlap is not considered overlap
+				std::pair<Time, Time> j_st = sta[j];
+				// std::cout << "Job " << j << " has start time "<< j_st.first << " - "<< j_st.second << std::endl;
+				std::pair<Time, Time> x_ft = rta[x];
+				// std::cout << "Job " << x << " has finish time "<< x_ft.first << " - "<< x_ft.second << std::endl;
+				bool disjoint = (x_ft.second <= j_st.first)|| (j_st.second <= x_ft.first);
+				return !disjoint;
 			}
 
 			bool connection_recorded(Job_index job, Job_index potential_connection)
@@ -1347,6 +1358,29 @@ namespace NP {
 					if (is_explore_graph)
 					{
 						// Add energy consumption and causal connection based pruning
+						bool energy_based_pruning = get_space_energy_consumption() > Upper_energy_threshold;
+						if(energy_based_pruning) std::cout<< "Energy exceeded" <<std::endl;
+						bool connected_link = true;
+						for (int i = relevant_jobs.size()-1 ; i>0; i--)
+						{
+							bool job_complete = true;
+							for (State& state : exploration_front)
+							{
+								job_complete &= !state.job_incomplete(relevant_jobs[i-1]) && !state.job_incomplete(relevant_jobs[i]);
+							}
+							if (job_complete)
+							{
+								// std::cout<< "considering jobs: " << relevant_jobs[i-1] << " and " << relevant_jobs[i] <<std::endl;
+								connected_link &= causally_overlapped(relevant_jobs[i-1],relevant_jobs[i]);
+
+								if (!causally_overlapped(relevant_jobs[i-1],relevant_jobs[i])) std::cout<< "Link broken between jobs " << relevant_jobs[i-1] << " and "<< relevant_jobs[i] <<std::endl;
+							}
+						}
+						if (energy_based_pruning || !connected_link) 
+						{
+							aborted = true;
+							break;
+						}
 					}
 
 					// allocate states space for next depth

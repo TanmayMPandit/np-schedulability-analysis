@@ -3,8 +3,8 @@ jobset:
     Job ID: 1
     Arrival min: 0
     Arrival max: 0
-    Cost min: 4
-    Cost max: 8
+    Cost min: 2
+    Cost max: 4
     Deadline: 10
     Priority: 1
   - Task ID: 2
@@ -27,13 +27,13 @@ jobset:
     Job ID: 1
     Arrival min: 7
     Arrival max: 8
-    Cost min: 2
-    Cost max: 3
+    Cost min: 4
+    Cost max: 6
     Deadline: 20
     Priority: 4
   - Task ID: 5
     Job ID: 1
-    Arrival min: 7
+    Arrival min: 8
     Arrival max: 8
     Cost min: 1
     Cost max: 1
