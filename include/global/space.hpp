@@ -192,6 +192,7 @@ namespace NP {
 					for (size_t job : link)
 					{ 
 						scaling_jobs.push_back(job);
+					}
 						//  Make a copy of jobset
 						Workload jobset = jobs;
 						Workload jobset_for_speed = jobs; //Need to refactor
@@ -266,7 +267,6 @@ namespace NP {
 							// Links providing better result than other
 						}
 						
-					}	
 				}
 				//  Necessary refactor: make a reconfigurable space for speed scaling exploration. such that we can set start space each time and change job execution times 
 				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
