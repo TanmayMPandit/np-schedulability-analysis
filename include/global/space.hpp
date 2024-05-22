@@ -51,8 +51,8 @@ namespace NP {
 				// doesn't yet support exploration after deadline miss
 				assert(opts.early_exit);
 
-
-				auto s = State_space(prob.jobs, prob.dag, prob.num_processors, opts.timeout,
+				Problem dynamic_problem = prob;
+				auto s = State_space(dynamic_problem.jobs, prob.dag, prob.num_processors, opts.timeout,
 				                     opts.max_depth, opts.num_buckets);
 				s.be_naive = opts.be_naive;
 				s.cpu_time.start();
@@ -113,9 +113,28 @@ namespace NP {
 						//  Once all checked, check if there exist a seeting,
 						if (energy_aware_possible)
 						{
-							std::cout  << " Can solve this " << std::endl ;
-							energy_aware_possible = false; //Just to avoid infinite loop fpr now
+							std::cout << "\033[1;32mEnergy aware scaling solution found. \033[0m" <<std::endl;
 							//  Somehow update S, speed, exploration time and graph
+							s.prepare_reset(scaling_result);
+							s.explore();
+							if(!s.is_schedulable())
+							{
+								std::cout << "\033[1;31mAnother deadline miss with updated solution.\033[0m" <<std::endl;
+								ultimate.add_relevant_job(s.get_deadline_miss_job());
+								ultimate.prepare_ultimate_reset(scaling_result);
+								energy_aware_possible = true; //Just to avoid infinite loop fpr now
+							}
+							else{
+								std::cout << "\033[1;32mEnergy aware speed setting found : \033[0m"  ;
+								for (std::vector<float> efficient_speed : scaling_result.energy_efficient_speed)
+								{
+									std::cout << efficient_speed.front() << ", ";
+								}
+								std::cout<<std::endl;
+								energy_aware_possible = false;
+							}
+						
+							
 							// Run S and wait for complition
 							//  If unschedulable, update deadline miss job and set energy_aware_possible to true
 							//  If schedulable, work done!!!!!!!!!!
@@ -128,6 +147,7 @@ namespace NP {
 					}
 				}
 #endif
+				
 				s.cpu_time.stop();
 				return s;
 
@@ -187,6 +207,12 @@ namespace NP {
 				//  Try for all causal link
 				for (std::vector<size_t> link : links)
 				{
+					std::cout << "\033[1;31mExploring link: \033[0m";
+					for (size_t connection : link)
+							{
+								std::cout  << connection << " => ";
+							}
+					std::cout << std::endl;
 					std::vector<size_t> scaling_jobs;
 					// For each link, starting from the first,
 					for (size_t job : link)
@@ -254,7 +280,7 @@ namespace NP {
 									// Remove lowest speed and for all index before set to initial available speed
 									std::vector<float> speed = jobset[scaling_jobs[current_changing_job]].get_speed_space();
 									speed.erase(speed.begin());
-									std::cout << "Reducing speed for the job "  << scaling_jobs[current_changing_job]  << " to "<< speed.front() << std::endl;
+									std::cout << "The job "  << scaling_jobs[current_changing_job]  << " to "<< speed.front() << std::endl;
 									jobset[scaling_jobs[current_changing_job]].update_speed_space(speed);
 									for (int i = 0; i < current_changing_job; i++)
 									{
@@ -284,6 +310,71 @@ namespace NP {
 				return energy_consumption;
 			}
 
+			void prepare_reset(speed_scaling_result result)
+			{
+				reset_abort();
+				update_jobs(result);
+				remove_older_states(result.energy_efficient_link);
+				reset_finish_start_times(result.energy_efficient_link);
+			}
+
+			void prepare_ultimate_reset(speed_scaling_result result)
+			{
+				reset_abort();
+				update_jobs(result);
+				update_ultimate_cost(result.energy_efficient_link);
+				remove_older_states(result.energy_efficient_link);
+				reset_finish_start_times(result.energy_efficient_link);
+			}
+
+			void update_jobs(speed_scaling_result result)
+			{
+				for (size_t job: result.energy_efficient_link)
+				{
+					jobs[job].update_speed_space(result.energy_efficient_speed[job]);
+				}
+			}
+
+			void update_ultimate_cost(std::vector<size_t> updated_jobs)
+			{
+				for (size_t job: updated_jobs)
+				{
+					jobs[job].set_cost_to_ultimate();
+					std::cout << "Job " << jobs[job].get_id() << " has ultimate interval" << jobs[job].get_cost() <<std::endl;
+				}
+
+			}
+
+			void reset_finish_start_times(std::vector<size_t> updated_jobs)
+			{
+				for (size_t job: updated_jobs)
+				{
+					rta[job] = {Time_model::constants<Time>::infinity(), 0};
+					sta[job] = {Time_model::constants<Time>::infinity(), 0};
+				}
+			}
+
+			void remove_older_states(std::vector<size_t> updated_jobs)
+			{
+				bool states_found = false; 
+				while(!states_found) 
+				{
+					states_storage.pop_back();
+					states_found = true;
+					for (State& selected_state : states_storage.back())
+					{
+						for(size_t job : updated_jobs )
+						{
+							states_found &= selected_state.job_incomplete(job); // Check if all of the jobs in the job to scale are incomplete in all of the the states in this level
+						}
+					}
+				}
+				current_job_count = states_storage.back().front().number_of_scheduled_jobs();
+				// std::cout << " Updated state job count is " << current_job_count<<std::endl;
+				
+
+			}
+
 			void set_energy_upper_threshold(float threshold)
 			{
 				Upper_energy_threshold = threshold;
@@ -308,6 +399,11 @@ namespace NP {
 				}
 				// std::cout << std::endl;
 				return -1;  // If no job has more than 1 speed then return -1
+			}
+
+			void reset_abort()
+			{
+				aborted = false;
 			}
 
 			void update_causal_connections()
@@ -682,7 +778,7 @@ namespace NP {
 
 			bool be_naive;
 
-			const Workload& jobs;
+			Workload& jobs;
 
 			// not touched after initialization
 			Jobs_lut _jobs_by_win;
@@ -746,6 +842,53 @@ namespace NP {
 #endif
 			{
 				for (const Job<Time>& j : jobs) {
+					_jobs_by_latest_arrival.insert({j.latest_arrival(), &j});
+					_jobs_by_earliest_arrival.insert({j.earliest_arrival(), &j});
+					_jobs_by_deadline.insert({j.get_deadline(), &j});
+					_jobs_by_win.insert(j);
+				}
+
+				for (auto e : dag_edges) {
+					const Job<Time>& from = lookup<Time>(jobs, e.first);
+					const Job<Time>& to   = lookup<Time>(jobs, e.second);
+					_predecessors[index_of(to)].push_back(index_of(from));
+				}
+				complete_connections.resize(jobs.size());
+				causal_connections.resize(jobs.size());
+			}
+
+			State_space( Workload& jobs,
+			            const Precedence_constraints &dag_edges,
+			            unsigned int num_cpus,
+			            double max_cpu_time = 0,
+			            unsigned int max_depth = 0,
+			            std::size_t num_buckets = 1000)
+			: _jobs_by_win(Interval<Time>{0, max_deadline(jobs)},
+			               max_deadline(jobs) / num_buckets)
+			, jobs(jobs)
+			, aborted(false)
+			, timed_out(false)
+			, be_naive(false)
+			, timeout(max_cpu_time)
+			, max_depth(max_depth)
+			, num_states(0)
+			, num_edges(0)
+			, width(0)
+			, current_job_count(0)
+			, num_cpus(num_cpus)
+			, jobs_by_latest_arrival(_jobs_by_latest_arrival)
+			, jobs_by_earliest_arrival(_jobs_by_earliest_arrival)
+			, jobs_by_deadline(_jobs_by_deadline)
+			, jobs_by_win(_jobs_by_win)
+			, _predecessors(jobs.size())
+			, predecessors(_predecessors)
+			, rta(Response_times(jobs.size(), {Time_model::constants<Time>::infinity(), 0}))
+			,sta(Ultimate_start_times(jobs.size(), {Time_model::constants<Time>::infinity(), 0}))
+#ifdef CONFIG_PARALLEL
+			, partial_rta(Response_times(jobs.size(), {Time_model::constants<Time>::infinity(), 0}))
+#endif
+			{
+				for ( Job<Time>& j : jobs) {
 					_jobs_by_latest_arrival.insert({j.latest_arrival(), &j});
 					_jobs_by_earliest_arrival.insert({j.earliest_arrival(), &j});
 					_jobs_by_deadline.insert({j.get_deadline(), &j});

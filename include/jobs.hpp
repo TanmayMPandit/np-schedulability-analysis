@@ -304,6 +304,17 @@ namespace NP {
 		return *pos;
 	}
 
+	// template<class Time>
+	// Job<Time>& lookup( typename Job<Time>::Job_set& jobs,
+	//                                 JobID& id)
+	// {
+	// 	auto pos = std::find_if(jobs.begin(), jobs.end(),
+	// 	                        [id] (const Job<Time>& j) { return j.is(id); } );
+	// 	if (pos == jobs.end())
+	// 		throw InvalidJobReference(id);
+	// 	return *pos;
+	// }
+
 }
 
 namespace std {

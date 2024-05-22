@@ -37,5 +37,5 @@ jobset:
     Arrival max: 8
     Cost min: 1
     Cost max: 1
-    Deadline: 14
+    Deadline: 20
     Priority: 5
