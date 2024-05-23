@@ -131,6 +131,7 @@ namespace NP {
 									std::cout << efficient_speed.front() << ", ";
 								}
 								std::cout<<std::endl;
+								std::cout << "\033[1;32mEnergy consumption : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
 								energy_aware_possible = false;
 							}
 						
@@ -404,6 +405,7 @@ namespace NP {
 			void reset_abort()
 			{
 				aborted = false;
+				reiterate = true;
 			}
 
 			void update_causal_connections()
@@ -769,6 +771,7 @@ namespace NP {
 			std::size_t deadline_miss_job = 0;
 			bool is_ultimate_graph = false;
 			bool is_explore_graph = false;
+			bool reiterate = false;
 			float Upper_energy_threshold;
 			std::vector<std::size_t> relevant_jobs = std::vector<std::size_t>();
 			std::vector<bool> complete_connections;
@@ -1469,7 +1472,7 @@ namespace NP {
 
 			void explore()
 			{
-				if(!is_explore_graph) make_initial_state();
+				if(!is_explore_graph && !reiterate) make_initial_state();
 
 				while (current_job_count < jobs.size()) {
 					unsigned long n;
