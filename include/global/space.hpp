@@ -71,7 +71,7 @@ namespace NP {
 						// Set Job cost to ultimate times
 						// std::cout << "Job " << job.get_id() << " has low speed cost interval" << job.get_cost() <<std::endl;
 						job.set_cost_to_ultimate();
-						std::cout << "Job " << job.get_id() << " has ultimate interval" << job.get_cost() <<std::endl;
+						// std::cout << "Job " << job.get_id() << " has ultimate interval" << job.get_cost() <<std::endl;
 						
 					}
 
@@ -85,10 +85,10 @@ namespace NP {
 					while (energy_aware_possible)
 					{
 						ultimate.explore();
-						std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
+						// std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
 						// Update causal link for each job noticed till now (I not already in their) 
 						ultimate.update_causal_connections();
-							std::cout << "Deadline miss job is " << ultimate.relevant_jobs.back()<< std::endl;
+							// std::cout << "Deadline miss job is " << ultimate.relevant_jobs.back()<< std::endl;
 						//  For deadline miss job create a set of causal link -> FUNCTION: get set of causal link for given job
 						std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
 						/////////////////// Debugging//////////////////////////////////
@@ -147,8 +147,12 @@ namespace NP {
 						}
 					}
 				}
+				else
+				{
+					std::cout << "\033[1;32mEnergy consumption at lowest feasible speed : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
+				}
 #endif
-				
+				// std::cout << s;
 				s.cpu_time.stop();
 				return s;
 
@@ -233,6 +237,28 @@ namespace NP {
 							// {
 							// 	jobset[job].set_cost_to_ultimate();
 							// }
+							// std::cout << "Unschedulable" << std::endl;
+								int current_changing_job = get_scaling_job_index(scaling_jobs,jobset);
+								// std::cout << "Changing job index "<< current_changing_job << std::endl; 
+								if (current_changing_job == -1)
+								{
+									// No job left to change
+									not_feasible = false;
+									continue;
+								}
+								else
+								{
+									// Remove lowest speed and for all index before set to initial available speed
+									std::vector<float> speed = jobset[scaling_jobs[current_changing_job]].get_speed_space();
+									speed.erase(speed.begin());
+									// std::cout << "The job "  << scaling_jobs[current_changing_job]  << " to "<< speed.front() << std::endl;
+									jobset[scaling_jobs[current_changing_job]].update_speed_space(speed);
+									for (int i = 0; i < current_changing_job; i++)
+									{
+										//  For each job before to initial availanble speed
+										jobset[scaling_jobs[i]].update_speed_space(jobset_for_speed[scaling_jobs[i]].get_speed_space());
+									}
+								}		
 
 							// Create an ultimate space with scaling jobs in relevant jobs
 							auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
@@ -246,10 +272,10 @@ namespace NP {
 							{
 								//  If feasible, store/update
 								// If energy consumption is less
-								std::cout << " Max energy consumption is " << scaling_space.get_space_energy_consumption()  << " and upper threshold is " << energy_efficient_consumption << std::endl;
+								// std::cout << " Max energy consumption is " << scaling_space.get_space_energy_consumption()  << " and upper threshold is " << energy_efficient_consumption << std::endl;
 								for (size_t job : scaling_jobs)
 									{
-										std::cout << "Job "<< job << " has solution lowest speed of " <<  jobset[job].get_speed_space().front() <<std::endl;
+										// std::cout << "Job "<< job << " has solution lowest speed of " <<  jobset[job].get_speed_space().front() <<std::endl;
 										// energy_efficient_speed[job] = jobset[job].get_speed_space();
 									}
 								float energy_consumption = scaling_space.get_space_energy_consumption();
@@ -269,26 +295,7 @@ namespace NP {
 							}
 							
 
-								// std::cout << "Unschedulable" << std::endl;
-								int current_changing_job = get_scaling_job_index(scaling_jobs,jobset);
-								if (current_changing_job == -1)
-								{
-									// No job left to change
-									not_feasible = false;
-								}
-								else
-								{
-									// Remove lowest speed and for all index before set to initial available speed
-									std::vector<float> speed = jobset[scaling_jobs[current_changing_job]].get_speed_space();
-									speed.erase(speed.begin());
-									std::cout << "The job "  << scaling_jobs[current_changing_job]  << " to "<< speed.front() << std::endl;
-									jobset[scaling_jobs[current_changing_job]].update_speed_space(speed);
-									for (int i = 0; i < current_changing_job; i++)
-									{
-										//  For each job before to initial availanble speed
-										jobset[scaling_jobs[i]].update_speed_space(jobset_for_speed[scaling_jobs[i]].get_speed_space());
-									}
-								}		
+								
 							
 							// BENCHMARKING:  make a histogram of levels searched i.e if a optimal value updated, then check the size of scaling job and update in the histogram of size of num jobs
 							// Links providing better result than other
@@ -341,7 +348,7 @@ namespace NP {
 				for (size_t job: updated_jobs)
 				{
 					jobs[job].set_cost_to_ultimate();
-					std::cout << "Job " << jobs[job].get_id() << " has ultimate interval" << jobs[job].get_cost() <<std::endl;
+					// std::cout << "Job " << jobs[job].get_id() << " has ultimate interval" << jobs[job].get_cost() <<std::endl;
 				}
 
 			}
@@ -444,12 +451,12 @@ namespace NP {
 				for (const NP::Job<Time>& potential_connection: jobs)
 				{
 					Job_index potential_index = index_of(potential_connection);
-					std::cout  << " Job with index " << potential_index << " is causally connected with jobs with index ";
-					for (size_t connected_index : causal_connections[potential_index] )
-					{
-						std::cout  << connected_index << ", ";
-					}
-					std::cout << std::endl;
+					// std::cout  << " Job with index " << potential_index << " is causally connected with jobs with index ";
+					// for (size_t connected_index : causal_connections[potential_index] )
+					// {
+					// 	std::cout  << connected_index << ", ";
+					// }
+					// std::cout << std::endl;
 
 				}
 				///////////////////////////////////////////////////////////////////////////////////

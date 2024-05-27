@@ -133,7 +133,7 @@ namespace NP {
 			};
 			float vcpu = dvfs_setting[index][0];
 			float fcpu = dvfs_setting[index][1];
-			return (0.4*((0.446*vcpu*vcpu*fcpu)+(0.1793*vcpu)- 0.1527)); // assumption that only one of the core is contributing to the current job
+			return (0.25*((0.446*vcpu*vcpu*fcpu)+(0.1793*vcpu)- 0.1527)); // assumption that only one of the core is contributing to the current job
 		}
 
 
