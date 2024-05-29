@@ -93,17 +93,17 @@ namespace NP {
 						std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
 						/////////////////// Debugging//////////////////////////////////
 						size_t causal_link_index = 0;
-						for (std::vector<size_t> link : causal_links)
-						{
-							std::cout  << " Causal link " << causal_link_index << " is : ";
-							for (size_t connection : link)
-							{
-								std::cout  << connection << " => ";
-							}
-							std::cout << std::endl;
-							causal_link_index += 1;
+						// for (std::vector<size_t> link : causal_links)
+						// {
+						// 	std::cout  << " Causal link " << causal_link_index << " is : ";
+						// 	for (size_t connection : link)
+						// 	{
+						// 		std::cout  << connection << " => ";
+						// 	}
+						// 	std::cout << std::endl;
+						// 	causal_link_index += 1;
 
-						}
+						// }
 						////////////////////////////////////////////////////////////
 						//  Initialize best solution setting storage 
 						
@@ -212,12 +212,12 @@ namespace NP {
 				//  Try for all causal link
 				for (std::vector<size_t> link : links)
 				{
-					std::cout << "\033[1;31mExploring link: \033[0m";
-					for (size_t connection : link)
-							{
-								std::cout  << connection << " => ";
-							}
-					std::cout << std::endl;
+					// std::cout << "\033[1;31mExploring link: \033[0m";
+					// for (size_t connection : link)
+					// 		{
+					// 			std::cout  << connection << " => ";
+					// 		}
+					// std::cout << std::endl;
 					std::vector<size_t> scaling_jobs;
 					// For each link, starting from the first,
 					for (size_t job : link)
@@ -448,17 +448,17 @@ namespace NP {
 					}					
 				}
 				///////////////////////////////Debugging//////////////////////////////////////////
-				for (const NP::Job<Time>& potential_connection: jobs)
-				{
-					Job_index potential_index = index_of(potential_connection);
-					// std::cout  << " Job with index " << potential_index << " is causally connected with jobs with index ";
-					// for (size_t connected_index : causal_connections[potential_index] )
-					// {
-					// 	std::cout  << connected_index << ", ";
-					// }
-					// std::cout << std::endl;
+				// for (const NP::Job<Time>& potential_connection: jobs)
+				// {
+				// 	Job_index potential_index = index_of(potential_connection);
+				// 	std::cout  << " Job with index " << potential_index << " is causally connected with jobs with index ";
+				// 	for (size_t connected_index : causal_connections[potential_index] )
+				// 	{
+				// 		std::cout  << connected_index << ", ";
+				// 	}
+				// 	std::cout << std::endl;
 
-				}
+				// }
 				///////////////////////////////////////////////////////////////////////////////////
 				
 				
@@ -588,7 +588,7 @@ namespace NP {
 					//  Set causal link vector as temp vector
 					causal_link = temp_links;
 				}
-				std::cout << "causal link consist of " << causal_link.size() << " links" << std::endl;
+				// std::cout << "causal link consist of " << causal_link.size() << " links" << std::endl;
 				return causal_link;
 				
 			}
@@ -1514,7 +1514,7 @@ namespace NP {
 					{
 						// Add energy consumption and causal connection based pruning
 						bool energy_based_pruning = get_space_energy_consumption() > Upper_energy_threshold;
-						if(energy_based_pruning) std::cout<< "Energy exceeded" <<std::endl;
+						// if(energy_based_pruning) std::cout<< "Energy exceeded" <<std::endl;
 						bool connected_link = true;
 						for (int i = relevant_jobs.size()-1 ; i>0; i--)
 						{
@@ -1528,7 +1528,7 @@ namespace NP {
 								// std::cout<< "considering jobs: " << relevant_jobs[i-1] << " and " << relevant_jobs[i] <<std::endl;
 								connected_link &= causally_overlapped(relevant_jobs[i-1],relevant_jobs[i]);
 
-								if (!causally_overlapped(relevant_jobs[i-1],relevant_jobs[i])) std::cout<< "Link broken between jobs " << relevant_jobs[i-1] << " and "<< relevant_jobs[i] <<std::endl;
+								// if (!causally_overlapped(relevant_jobs[i-1],relevant_jobs[i])) std::cout<< "Link broken between jobs " << relevant_jobs[i-1] << " and "<< relevant_jobs[i] <<std::endl;
 							}
 						}
 						if (energy_based_pruning || !connected_link) 
