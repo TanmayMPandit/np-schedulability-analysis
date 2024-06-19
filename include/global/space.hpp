@@ -289,9 +289,12 @@ namespace NP {
 										// std::cout << "Job "<< job << " has updated lowest speed of " <<  jobset[job].get_speed_space().front() <<std::endl;
 										energy_efficient_speed[job] = jobset[job].get_speed_space();
 									}
+									
+									
 
 								}
 								speed_scaling_solution_exist = true;
+								goto leave;
 							}
 							
 
@@ -303,7 +306,7 @@ namespace NP {
 						
 				}
 				//  Necessary refactor: make a reconfigurable space for speed scaling exploration. such that we can set start space each time and change job execution times 
-				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				leave : speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
 				return result;
 			}
 
