@@ -108,7 +108,7 @@ namespace NP {
 						//  Initialize best solution setting storage 
 						
 						energy_aware_possible = false;
-						speed_scaling_result scaling_result = s.speed_scale(causal_links,prob,opts);
+						speed_scaling_result scaling_result = s.solve_causal(causal_links,prob,opts);
 						energy_aware_possible = scaling_result.solution_found;
 						//  Once all checked, check if there exist a seeting,
 						if (energy_aware_possible)
@@ -195,10 +195,46 @@ namespace NP {
 			}
 
 			
+			speed_scaling_result solve_causal(std::vector<std::vector<size_t>> links, const Problem& prob, const Analysis_options& opts)
+			{
+				// solver based optimization
+				/*
+				Input : Links
+						Problem (SAG space)
+						Opts (SAG space)
 
+				Output: Scaling result (solution_exist , energy_efficient_link, energy_efficient_speeds)
+				*/ 
+						
+				/*
+				For each link,
+					check the energy, computation time, release time, deadline table for each link. 
+					IMPOERTANT: causal link in the solver is opposite to SAG
+					Initialize the solver and solve
+					Remove all the links that shhow infeasible solve
+				*/  
+				/*
+				For feasible links,
+					Sort based on the obj value (L to H)
+					(Hueristic: smallest energy consumption can provide better chance for obj solution)
+					In sorted links:
+						Pick the first link and search the explore SAG with solved speeds
+						check if any causal link break (according to solver conditions)
+						if found, add a constraint for condition 
+						if none, and solves the problem, then update as a feable solution 
+						possible hueristic: first explore and if feasible, don't check with connections
+					Once a feasible solution is found : remove all the solvers with energy consumption higher
+					than feasible and in rest check for better solutionn 
+				*/
+
+				//  return efficient solution
+				speed_scaling_result result;
+				return result;
+			}
 
 			speed_scaling_result speed_scale(std::vector<std::vector<size_t>> links, const Problem& prob, const Analysis_options& opts)
 			{
+				// Search based optimization 
 				// Change return type to result
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
