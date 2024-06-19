@@ -22,6 +22,7 @@
 
 #include "problem.hpp"
 #include "clock.hpp"
+#include "global/solver.hpp"
 
 #include "global/state.hpp"
 
@@ -211,20 +212,17 @@ namespace NP {
 					check the energy, computation time, release time, deadline table for each link. 
 					IMPOERTANT: causal link in the solver is opposite to SAG
 					Initialize the solver and solve
-					Remove all the links that shhow infeasible solve
+					Add feasible link index to a vector and sort the vector based on the objective value (min to max)
+					(Hueristic: smallest energy consumption can provide better feasible result)
 				*/  
 				/*
 				For feasible links,
-					Sort based on the obj value (L to H)
-					(Hueristic: smallest energy consumption can provide better chance for obj solution)
 					In sorted links:
 						Pick the first link and search the explore SAG with solved speeds
 						check if any causal link break (according to solver conditions)
 						if found, add a constraint for condition 
 						if none, and solves the problem, then update as a feable solution 
-						possible hueristic: first explore and if feasible, don't check with connections
-					Once a feasible solution is found : remove all the solvers with energy consumption higher
-					than feasible and in rest check for better solutionn 
+						possible hueristic: first explore and if feasible, don't check with connections 
 				*/
 
 				//  return efficient solution

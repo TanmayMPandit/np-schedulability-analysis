@@ -117,6 +117,47 @@ namespace NP {
 			
 		}
 
+		struct  SolverJobInput
+		{
+			std::vector<double> energy_consumption;
+			std::vector<double> computation_time;
+			double latest_release_time;
+			double deadline;
+		}; 
+
+		SolverJobInput get_solver_job_input()
+		{
+			SolverJobInput result;
+			result.energy_consumption = all_speed_input()[0];
+			result.computation_time = all_speed_input()[1];
+			result.latest_release_time = double(arrival.until());
+			result.deadline = double(deadline);
+			return result;
+		}
+
+		std::array<std::vector<double>, 2> all_speed_input()
+		{
+			// calculate energy consumption for the job at each speed. If the speed is not in then add inf
+			// REFACTOR: Energy setting is hardcoded. Need better abstraction
+			std::array<std::vector<double>, 2> result;
+			size_t num_of_valid_speeds = 5-speed.size();
+			for (int i = 0; i < 5 - num_of_valid_speeds; i++)
+			{
+				result[0].push_back(std::numeric_limits<double>::infinity());
+				result[1].push_back(std::numeric_limits<double>::infinity());
+			}
+			int speed_count = speed.size();
+			for(float s : speed)
+			{
+				double computation = ceil(high_speed_cost.upto()/s);
+				result[0].push_back(calculate_energy(5-speed_count)*computation);
+				result[1].push_back(computation);
+				speed_count--;
+			}
+
+			return result;
+		}
+
 		Energy calculate_energy(size_t index)
 		{
 			// TODO: remove hardcoded dvfs values and provide everything in yaml file
