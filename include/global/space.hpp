@@ -218,26 +218,44 @@ namespace NP {
 					(Hueristic: smallest energy consumption can provide better feasible result)
 				*/  
 				std::vector<LinkSolver> link_solvers;
-				for (std::vector<size_t> link : links)
+				std::vector<size_t>  feasible_link_index;
+				// std::cout << "Initial energy is " << get_empty_space_energy_consumption() << std::endl;
+				std::vector<float> link_energy (links.size(),get_empty_space_energy_consumption()); 
+				for (int i = 0 ; i < links.size() ; i++)
 				{
+					std::vector<size_t> link = links[i];
+					//  Update energy without the causal link element
 					std::deque<std::vector<double>> Ei_k;
 					std::deque<std::vector<double>> Ci_k;
 					std::deque<double> Ri;
 					std::deque<double> Di;
 					for (size_t job : link)
 					{
+						link_energy[i] -= jobs[job].get_energy();
 						SolverJobInput result = jobs[job].get_solver_job_input();
 						Ei_k.push_front(result.energy_consumption);
 						Ci_k.push_front(result.computation_time);
 						Ri.push_front(result.latest_release_time);
 						Di.push_front(result.deadline);
 					}
-	
+
 					link_solvers.push_back(LinkSolver(Ei_k,Ci_k,Ri,Di));
 					SolverResult result = link_solvers.back().solve();
-					link_solvers.back().cleanup();
-					if (result.solved) std::cout << "Link solver successful with obj value" << result.objective_value << std::endl; 
+					if (result.solved){
+						std::cout << "Link solver successful with obj value" << result.objective_value << std::endl; 
+						// std::cout << "Lowest speed for jobs : ";
+						// for (std::vector<float> speed : result.job_speeds)
+						// {
+						// 	std::cout << speed.front() << ", " ;
+						// }
+						// std::cout << std::endl;
+						link_energy[i] += result.objective_value;
+						// std::cout << "Link energy : " << link_energy[i]  <<std::endl;
+						feasible_link_index.push_back(i);
+					}
 				}	
+				// Sort the feasible link index from low to high
+				std::sort(feasible_link_index.begin(), feasible_link_index.end(),[&link_energy](size_t a, size_t b) { return link_energy[a] < link_energy[b]; });
 				/*
 				For feasible links,
 					In sorted links:
@@ -372,6 +390,18 @@ namespace NP {
 			{
 				float energy_consumption = 0.0;
 				for (State& selected_state : states_storage.back())
+				{
+					// std::cout << "Energy consumption of " << selected_state << " is " << selected_state.get_energy_consumption_till_state() << std::endl;
+					energy_consumption = std::max(energy_consumption,selected_state.get_energy_consumption_till_state());
+				}
+				return energy_consumption;
+			}
+
+			float get_empty_space_energy_consumption()
+			{
+				//  Use when last element is empty i.e. main SAG break
+				float energy_consumption = 0.0;
+				for (State& selected_state : states_storage.at(states_storage.size()-2))
 				{
 					// std::cout << "Energy consumption of " << selected_state << " is " << selected_state.get_energy_consumption_till_state() << std::endl;
 					energy_consumption = std::max(energy_consumption,selected_state.get_energy_consumption_till_state());

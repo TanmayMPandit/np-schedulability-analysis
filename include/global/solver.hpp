@@ -27,7 +27,7 @@ public:
 	{
 		bool solved;
         double objective_value;
-		std::vector<std::vector<float>> job_speeds;
+		std::deque<std::vector<float>> job_speeds;
 	}; 
 
     SolverResult solve() {
@@ -43,7 +43,7 @@ public:
                     for (int k = 0; k < m; k++) {
                       if(cplex.getValue(Si_k[i][k])) { // For each job, cjeck the index of selected speed
                         if (k > 0) original_speed.erase(original_speed.begin(), original_speed.begin() + k);
-                        result.job_speeds.push_back(original_speed); // Add speed and higher in the result 
+                        result.job_speeds.push_front(original_speed); // Add speed and higher in the result 
                       }
                     }
                 }
