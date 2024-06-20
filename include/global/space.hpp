@@ -118,6 +118,7 @@ namespace NP {
 						{
 							std::cout << "\033[1;32mEnergy aware scaling solution found. \033[0m" <<std::endl;
 							//  Somehow update S, speed, exploration time and graph
+							
 							s.prepare_reset(scaling_result);
 							s.explore();
 							if(!s.is_schedulable())
@@ -218,7 +219,16 @@ namespace NP {
 					(Hueristic: smallest energy consumption can provide better feasible result)
 				*/  
 				std::vector<LinkSolver> link_solvers;
+				std::vector<SolverResult> link_results;
 				std::vector<size_t>  feasible_link_index;
+				bool solution_found;
+				std::vector<size_t> energy_efficient_link;
+				std::vector<std::vector<float>> energy_efficient_speed;
+				for (NP::Job<Time> j:jobs)
+				{
+					// std::cout << "Job "<< j.get_id() << " has lowest speed of " <<  j.get_speed_space().front() <<std::endl;
+					energy_efficient_speed.push_back(j.get_speed_space());
+				}
 				// std::cout << "Initial energy is " << get_empty_space_energy_consumption() << std::endl;
 				std::vector<float> link_energy (links.size(),get_empty_space_energy_consumption()); 
 				for (int i = 0 ; i < links.size() ; i++)
@@ -241,6 +251,7 @@ namespace NP {
 
 					link_solvers.push_back(LinkSolver(Ei_k,Ci_k,Ri,Di));
 					SolverResult result = link_solvers.back().solve();
+					link_results.push_back(result);
 					if (result.solved){
 						std::cout << "Link solver successful with obj value" << result.objective_value << std::endl; 
 						// std::cout << "Lowest speed for jobs : ";
@@ -256,19 +267,54 @@ namespace NP {
 				}	
 				// Sort the feasible link index from low to high
 				std::sort(feasible_link_index.begin(), feasible_link_index.end(),[&link_energy](size_t a, size_t b) { return link_energy[a] < link_energy[b]; });
-				/*
-				For feasible links,
-					In sorted links:
-						Pick the first link and search the explore SAG with solved speeds
-						check if any causal link break (according to solver conditions)
-						if found, add a constraint for condition 
-						if none, and solves the problem, then update as a feable solution 
-						possible hueristic: first explore and if feasible, don't check with connections 
-				*/
+				float energy_threshold = std::numeric_limits<float>::infinity();;
+			// while not empty. Pick the first link
+				while(!feasible_link_index.empty())
+				{
+					size_t selected_link_index = feasible_link_index.front();
+					std::deque<std::vector<float>> efficient_speed = link_results[selected_link_index].job_speeds;
+			// 1:search the explore SAG with solved speeds
+					Workload jobset = jobs;
+					std::deque<State> temp_state = get_scaling_state(links[selected_link_index]);
+					for (int i = 0 ; i < links[selected_link_index].size(); i++)
+					{
+						jobset[links[selected_link_index][i]].update_speed_space(efficient_speed[i]);
+					}
+					auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+				                     opts.max_depth, opts.num_buckets);
+					scaling_space.set_explore_space(temp_state);
+					scaling_space.explore();
+					if (scaling_space.is_schedulable())
+					{
+						std::cout << " Causal link " << selected_link_index << " is feasible" << std::endl;
+						
+						if (scaling_space.get_space_energy_consumption() < energy_threshold){
+							solution_found = true;
+							energy_threshold = scaling_space.get_space_energy_consumption();
+							energy_efficient_link = links[selected_link_index];
+							for (int e = 0; e < energy_efficient_link.size() ; e++)
+							{
+								energy_efficient_speed[energy_efficient_link[e]]  = efficient_speed[e];
+							}
+					
+						}
+
+						// IMPORTANT: Add energy based link pruning
+						if (!feasible_link_index.empty()) {
+							feasible_link_index.erase(feasible_link_index.begin()); 
+						}
+					}
+					else
+					{
+						//  check for broken link
+						std::cout << " Need to fix broken link"  << std::endl;
+					}
+				}
+				
 
 				//  return efficient solution
-				speed_scaling_result result;
-				result.solution_found = false;
+				
+				speed_scaling_result result = {solution_found,energy_efficient_link,energy_efficient_speed};
 				return result;
 			}
 
@@ -1601,33 +1647,33 @@ namespace NP {
 						}
 
 					}
-					if (is_explore_graph)
-					{
-						// Add energy consumption and causal connection based pruning
-						bool energy_based_pruning = get_space_energy_consumption() > Upper_energy_threshold;
-						// if(energy_based_pruning) std::cout<< "Energy exceeded" <<std::endl;
-						bool connected_link = true;
-						for (int i = relevant_jobs.size()-1 ; i>0; i--)
-						{
-							bool job_complete = true;
-							for (State& state : exploration_front)
-							{
-								job_complete &= !state.job_incomplete(relevant_jobs[i-1]) && !state.job_incomplete(relevant_jobs[i]);
-							}
-							if (job_complete)
-							{
-								// std::cout<< "considering jobs: " << relevant_jobs[i-1] << " and " << relevant_jobs[i] <<std::endl;
-								connected_link &= causally_overlapped(relevant_jobs[i-1],relevant_jobs[i]);
+					// if (is_explore_graph)
+					// {
+					// 	// Add energy consumption and causal connection based pruning
+					// 	bool energy_based_pruning = get_space_energy_consumption() > Upper_energy_threshold;
+					// 	// if(energy_based_pruning) std::cout<< "Energy exceeded" <<std::endl;
+					// 	bool connected_link = true;
+					// 	for (int i = relevant_jobs.size()-1 ; i>0; i--)
+					// 	{
+					// 		bool job_complete = true;
+					// 		for (State& state : exploration_front)
+					// 		{
+					// 			job_complete &= !state.job_incomplete(relevant_jobs[i-1]) && !state.job_incomplete(relevant_jobs[i]);
+					// 		}
+					// 		if (job_complete)
+					// 		{
+					// 			// std::cout<< "considering jobs: " << relevant_jobs[i-1] << " and " << relevant_jobs[i] <<std::endl;
+					// 			connected_link &= causally_overlapped(relevant_jobs[i-1],relevant_jobs[i]);
 
-								// if (!causally_overlapped(relevant_jobs[i-1],relevant_jobs[i])) std::cout<< "Link broken between jobs " << relevant_jobs[i-1] << " and "<< relevant_jobs[i] <<std::endl;
-							}
-						}
-						if (energy_based_pruning || !connected_link) 
-						{
-							aborted = true;
-							break;
-						}
-					}
+					// 			// if (!causally_overlapped(relevant_jobs[i-1],relevant_jobs[i])) std::cout<< "Link broken between jobs " << relevant_jobs[i-1] << " and "<< relevant_jobs[i] <<std::endl;
+					// 		}
+					// 	}
+					// 	if (energy_based_pruning || !connected_link) 
+					// 	{
+					// 		aborted = true;
+					// 		break;
+					// 	}
+					// }
 
 					// allocate states space for next depth
 					states_storage.emplace_back();

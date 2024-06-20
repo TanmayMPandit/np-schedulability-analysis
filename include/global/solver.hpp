@@ -21,6 +21,7 @@ public:
             addObjective();
             cplex.setOut(env.getNullStream());
             cplex.setWarning(env.getNullStream());
+            cplex.setParam(IloCplex::Param::Threads, 1);
     }
 
     struct  SolverResult
