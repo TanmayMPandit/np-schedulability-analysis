@@ -141,10 +141,10 @@ namespace NP {
 			// REFACTOR: Energy setting is hardcoded. Need better abstraction
 			std::array<std::vector<double>, 2> result;
 			size_t num_of_valid_speeds = 5-speed.size();
-			for (int i = 0; i < 5 - num_of_valid_speeds; i++)
+			for (int i = 0; i < num_of_valid_speeds; i++)
 			{
-				result[0].push_back(std::numeric_limits<double>::infinity());
-				result[1].push_back(std::numeric_limits<double>::infinity());
+				result[0].push_back(1e10); // make sure this is big eneough
+				result[1].push_back(1e10);
 			}
 			int speed_count = speed.size();
 			for(float s : speed)

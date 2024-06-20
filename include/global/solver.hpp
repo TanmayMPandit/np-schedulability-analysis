@@ -3,22 +3,24 @@
 
 #include <ilcplex/ilocplex.h>
 #include <vector>
+#include <deque>
 #include <iostream>
 
 ILOSTLBEGIN
 
 class LinkSolver {
 public:
-    LinkSolver(const std::vector<std::vector<double>>& Ei_k, 
-               const std::vector<std::vector<double>>& Ci_k,
-               const std::vector<double>& Ri,
-               const std::vector<double>& Di)
+    LinkSolver(const std::deque<std::vector<double>>& Ei_k, 
+               const std::deque<std::vector<double>>& Ci_k,
+               const std::deque<double>& Ri,
+               const std::deque<double>& Di)
         : n(Ei_k.size()), m(Ei_k[0].size()), Ei_k(Ei_k), Ci_k(Ci_k), Ri(Ri), Di(Di), env(), model(env), cplex(model) {
        
             initializeVariables();
             addInitialConstraints();
             addObjective();
-        
+            cplex.setOut(env.getNullStream());
+            cplex.setWarning(env.getNullStream());
     }
 
     struct  SolverResult
@@ -30,7 +32,7 @@ public:
 
     SolverResult solve() {
         SolverResult  result; // Init the result
-        
+
         try {
             if (cplex.solve()) { // Solve the solver
                 result.solved = true; // if solution found, then add to result
@@ -65,10 +67,10 @@ public:
 
 private:
     int n, m;
-    std::vector<std::vector<double>> Ei_k;
-    std::vector<std::vector<double>> Ci_k;
-    std::vector<double> Ri;
-    std::vector<double> Di;
+    std::deque<std::vector<double>> Ei_k;
+    std::deque<std::vector<double>> Ci_k;
+    std::deque<double> Ri;
+    std::deque<double> Di;
 
     IloEnv env;
     IloModel model;

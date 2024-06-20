@@ -35,6 +35,8 @@ namespace NP {
 			public:
 
 			typedef Scheduling_problem<Time> Problem;
+			typedef typename NP::Job<Time>::SolverJobInput SolverJobInput;
+			typedef typename LinkSolver::SolverResult SolverResult;
 			typedef typename Scheduling_problem<Time>::Workload Workload;
 			typedef Schedule_state<Time> State;
 
@@ -94,17 +96,17 @@ namespace NP {
 						std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
 						/////////////////// Debugging//////////////////////////////////
 						size_t causal_link_index = 0;
-						// for (std::vector<size_t> link : causal_links)
-						// {
-						// 	std::cout  << " Causal link " << causal_link_index << " is : ";
-						// 	for (size_t connection : link)
-						// 	{
-						// 		std::cout  << connection << " => ";
-						// 	}
-						// 	std::cout << std::endl;
-						// 	causal_link_index += 1;
+						for (std::vector<size_t> link : causal_links)
+						{
+							std::cout  << " Causal link " << causal_link_index << " is : ";
+							for (size_t connection : link)
+							{
+								std::cout  << connection << " => ";
+							}
+							std::cout << std::endl;
+							causal_link_index += 1;
 
-						// }
+						}
 						////////////////////////////////////////////////////////////
 						//  Initialize best solution setting storage 
 						
@@ -210,11 +212,32 @@ namespace NP {
 				/*
 				For each link,
 					check the energy, computation time, release time, deadline table for each link. 
-					IMPOERTANT: causal link in the solver is opposite to SAG
+					IMP: causal link in the solver is opposite to SAG
 					Initialize the solver and solve
 					Add feasible link index to a vector and sort the vector based on the objective value (min to max)
 					(Hueristic: smallest energy consumption can provide better feasible result)
 				*/  
+				std::vector<LinkSolver> link_solvers;
+				for (std::vector<size_t> link : links)
+				{
+					std::deque<std::vector<double>> Ei_k;
+					std::deque<std::vector<double>> Ci_k;
+					std::deque<double> Ri;
+					std::deque<double> Di;
+					for (size_t job : link)
+					{
+						SolverJobInput result = jobs[job].get_solver_job_input();
+						Ei_k.push_front(result.energy_consumption);
+						Ci_k.push_front(result.computation_time);
+						Ri.push_front(result.latest_release_time);
+						Di.push_front(result.deadline);
+					}
+	
+					link_solvers.push_back(LinkSolver(Ei_k,Ci_k,Ri,Di));
+					SolverResult result = link_solvers.back().solve();
+					link_solvers.back().cleanup();
+					if (result.solved) std::cout << "Link solver successful with obj value" << result.objective_value << std::endl; 
+				}	
 				/*
 				For feasible links,
 					In sorted links:
@@ -227,6 +250,7 @@ namespace NP {
 
 				//  return efficient solution
 				speed_scaling_result result;
+				result.solution_found = false;
 				return result;
 			}
 
