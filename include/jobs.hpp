@@ -117,6 +117,11 @@ namespace NP {
 			
 		}
 
+		Interval<Time> get_high_speed_cost()
+		{
+			return high_speed_cost;
+		}
+
 		struct  SolverJobInput
 		{
 			std::vector<double> energy_consumption;
@@ -143,8 +148,8 @@ namespace NP {
 			size_t num_of_valid_speeds = 5-speed.size();
 			for (int i = 0; i < num_of_valid_speeds; i++)
 			{
-				result[0].push_back(1e10); // make sure this is big eneough
-				result[1].push_back(1e10);
+				result[0].push_back(1e20); // make sure this is big eneough
+				result[1].push_back(1e20);
 			}
 			int speed_count = speed.size();
 			for(float s : speed)

@@ -46,6 +46,14 @@ namespace NP {
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed;
 			};
+			
+			struct  broken_link_result
+			{
+				bool broken; // True means broken
+				size_t situation;
+				size_t job_index ;// job that needs to finish
+				double limit ; // constraint limit 
+			};
 
 			static State_space explore(
 					const Problem& prob,
@@ -111,7 +119,7 @@ namespace NP {
 						//  Initialize best solution setting storage 
 						
 						energy_aware_possible = false;
-						speed_scaling_result scaling_result = s.solve_causal(causal_links,prob,opts);
+						speed_scaling_result scaling_result = s.speed_scale(causal_links,prob,opts);
 						energy_aware_possible = scaling_result.solution_found;
 						//  Once all checked, check if there exist a seeting,
 						if (energy_aware_possible)
@@ -221,7 +229,7 @@ namespace NP {
 				std::vector<LinkSolver> link_solvers;
 				std::vector<SolverResult> link_results;
 				std::vector<size_t>  feasible_link_index;
-				bool solution_found;
+				bool solution_found = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed;
 				for (NP::Job<Time> j:jobs)
@@ -286,28 +294,61 @@ namespace NP {
 					scaling_space.explore();
 					if (scaling_space.is_schedulable())
 					{
-						std::cout << " Causal link " << selected_link_index << " is feasible" << std::endl;
-						
+						// std::cout << " Causal link " << selected_link_index << " is feasible" << std::endl;
+						solution_found = true;
 						if (scaling_space.get_space_energy_consumption() < energy_threshold){
-							solution_found = true;
 							energy_threshold = scaling_space.get_space_energy_consumption();
 							energy_efficient_link = links[selected_link_index];
 							for (int e = 0; e < energy_efficient_link.size() ; e++)
 							{
 								energy_efficient_speed[energy_efficient_link[e]]  = efficient_speed[e];
 							}
-					
-						}
-
-						// IMPORTANT: Add energy based link pruning
-						if (!feasible_link_index.empty()) {
+							if (!feasible_link_index.empty()) {
 							feasible_link_index.erase(feasible_link_index.begin()); 
+							}
+							std::vector<size_t> links_to_remove;
+							for (size_t index : feasible_link_index)
+							{
+								if(link_energy[index] >= energy_threshold){
+									links_to_remove.push_back(index);
+								}
+							}
+							for (size_t index :links_to_remove)
+							{
+								auto it = std::find(feasible_link_index.begin(), feasible_link_index.end(), 
+									index); 
+									if (it != feasible_link_index.end()) { 
+										feasible_link_index.erase(it); 
+									} 
+							}
+							links_to_remove.clear();
+							
+						
 						}
+						else{
+							if (!feasible_link_index.empty()) feasible_link_index.erase(feasible_link_index.begin()); 
+						}
+						
 					}
 					else
 					{
-						//  check for broken link
-						std::cout << " Need to fix broken link"  << std::endl;
+						if(!feasible_link_index.empty()) feasible_link_index.erase(feasible_link_index.begin()); 
+						// //  check for broken link
+						// std::cout << " Need to fix broken link"  << std::endl;
+						// broken_link_result link_result = scaling_space.check_for_broken_link(links[selected_link_index]);
+						// // Add constraint 
+						// link_solvers[selected_link_index].broken_link_constraint(link_result.situation,link_result.job_index,link_result.limit);
+						// SolverResult solver_result = link_solvers[selected_link_index].solve();
+						// if(solver_result.solved)
+						// {
+						// 	// If solved, update the result
+						// 	link_results[selected_link_index] = solver_result;
+						// }
+						// else
+						// {
+						// 	// If not remove
+						// 	if (!feasible_link_index.empty()) feasible_link_index.erase(feasible_link_index.begin()); 
+						// }
 					}
 				}
 				
@@ -315,6 +356,39 @@ namespace NP {
 				//  return efficient solution
 				
 				speed_scaling_result result = {solution_found,energy_efficient_link,energy_efficient_speed};
+				return result;
+			}
+
+
+			broken_link_result check_for_broken_link(std::vector<size_t> link)
+			{
+				//  check if the scaling space has any broken coonnection
+				// Identify the type and solution.
+				// Job index with respect to isolation to 
+				bool broken;
+				size_t job;
+				size_t scenario;
+				double limit;
+				for(int i = 0 ; i < link.size()-1 ; i ++){
+					if(!causally_overlapped(i,i+1))
+					{
+						if (rta[i+1].first >=  sta[i].second)
+						{
+							// Case 3
+							broken = true;
+							job = link.size()-i-1; // Index as per solver
+							scenario = 3;
+							limit = sta[i].second;
+
+						}
+						else if (rta[i+1].second <=  sta[i].first){
+							//  find all jobs between state job x is first scheduled and job j is last scheduled
+							// Check if any causally connected to job x.
+							//  Out of all jobs connected, find prioirty  
+						}
+					}
+				}
+				broken_link_result result;
 				return result;
 			}
 
@@ -405,10 +479,16 @@ namespace NP {
 								{
 									std::cout << "best solution updated" << std::endl;
 									energy_efficient_consumption = energy_consumption;
+									std::cout << "Energy efficient causal link : " ;
+									for (size_t job : link)
+									{
+										std:: cout << job << " , ";
+									}
+									std::cout << std:: endl;
 									energy_efficient_link = link;
 									for (size_t job : link)
 									{
-										// std::cout << "Job "<< job << " has updated lowest speed of " <<  jobset[job].get_speed_space().front() <<std::endl;
+										std::cout << "Job "<< job << " has updated lowest speed of " <<  jobset[job].get_speed_space().front() <<std::endl;
 										energy_efficient_speed[job] = jobset[job].get_speed_space();
 									}
 									
@@ -1647,33 +1727,33 @@ namespace NP {
 						}
 
 					}
-					// if (is_explore_graph)
-					// {
-					// 	// Add energy consumption and causal connection based pruning
-					// 	bool energy_based_pruning = get_space_energy_consumption() > Upper_energy_threshold;
-					// 	// if(energy_based_pruning) std::cout<< "Energy exceeded" <<std::endl;
-					// 	bool connected_link = true;
-					// 	for (int i = relevant_jobs.size()-1 ; i>0; i--)
-					// 	{
-					// 		bool job_complete = true;
-					// 		for (State& state : exploration_front)
-					// 		{
-					// 			job_complete &= !state.job_incomplete(relevant_jobs[i-1]) && !state.job_incomplete(relevant_jobs[i]);
-					// 		}
-					// 		if (job_complete)
-					// 		{
-					// 			// std::cout<< "considering jobs: " << relevant_jobs[i-1] << " and " << relevant_jobs[i] <<std::endl;
-					// 			connected_link &= causally_overlapped(relevant_jobs[i-1],relevant_jobs[i]);
+					if (is_explore_graph)
+					{
+						// Add energy consumption and causal connection based pruning
+						bool energy_based_pruning = get_space_energy_consumption() > Upper_energy_threshold;
+						// if(energy_based_pruning) std::cout<< "Energy exceeded" <<std::endl;
+						bool connected_link = true;
+						for (int i = relevant_jobs.size()-1 ; i>0; i--)
+						{
+							bool job_complete = true;
+							for (State& state : exploration_front)
+							{
+								job_complete &= !state.job_incomplete(relevant_jobs[i-1]) && !state.job_incomplete(relevant_jobs[i]);
+							}
+							if (job_complete)
+							{
+								// std::cout<< "considering jobs: " << relevant_jobs[i-1] << " and " << relevant_jobs[i] <<std::endl;
+								connected_link &= causally_overlapped(relevant_jobs[i-1],relevant_jobs[i]);
 
-					// 			// if (!causally_overlapped(relevant_jobs[i-1],relevant_jobs[i])) std::cout<< "Link broken between jobs " << relevant_jobs[i-1] << " and "<< relevant_jobs[i] <<std::endl;
-					// 		}
-					// 	}
-					// 	if (energy_based_pruning || !connected_link) 
-					// 	{
-					// 		aborted = true;
-					// 		break;
-					// 	}
-					// }
+								// if (!causally_overlapped(relevant_jobs[i-1],relevant_jobs[i])) std::cout<< "Link broken between jobs " << relevant_jobs[i-1] << " and "<< relevant_jobs[i] <<std::endl;
+							}
+						}
+						if (energy_based_pruning || !connected_link) 
+						{
+							aborted = true;
+							break;
+						}
+					}
 
 					// allocate states space for next depth
 					states_storage.emplace_back();

@@ -5,6 +5,7 @@
 #include <vector>
 #include <deque>
 #include <iostream>
+#include "space.hpp"
 
 ILOSTLBEGIN
 
@@ -30,6 +31,24 @@ public:
         double objective_value;
 		std::deque<std::vector<float>> job_speeds;
 	}; 
+
+    void broken_link_constraint(size_t scenario, size_t job, double limit)
+    {
+        switch (scenario) {
+        case 1:
+            model.add(Fi[job] <= limit);
+            break;
+        case 2:
+            model.add(Fi[job] >= limit);
+            break;
+        case 3:
+            model.add(Fi[job] <= limit);
+            break;
+        default:
+            std::cerr << "Invalid scenarios" << std::endl;
+            break;
+    }
+    }
 
     SolverResult solve() {
         SolverResult  result; // Init the result
@@ -131,6 +150,8 @@ private:
             throw; 
         }
     }
+
+
 
     void addObjective() {
         try {

@@ -97,6 +97,28 @@ static Analysis_result analyze(
 					// std::cout << "Job "<< job.get_job_id() << ": " << job.latest_arrival() <<" "<< ceil(job.maximal_cost()/selected_speed) <<" "<< job.get_deadline() << std::endl;
 				}
 			}
+
+			int critical_speed_pruining_index = -1;
+
+			for (int s=0 ; s < temp_speed.size()-1 ; s++)
+			{
+				float last_job_energy = job.calculate_energy(4-s)*(job.get_high_speed_cost().until()/temp_speed[temp_speed.size()-1-s]);
+				float job_before_energy = job.calculate_energy(4-s-1)*(job.get_high_speed_cost().until()/temp_speed[temp_speed.size()-1-s-1]);
+				// std::cout << job.get_id() << " has energies " << last_job_energy << " and " << job_before_energy << std::endl;
+				if (last_job_energy < job_before_energy)
+				{
+					critical_speed_pruining_index = s;
+					std::cout << job.get_id() << " has critical speed " << temp_speed[temp_speed.size()-1-s] << std::endl;
+					break;
+				}
+
+			}
+			if (critical_speed_pruining_index != -1)
+			{
+				temp_speed.erase( std::next(temp_speed.begin(), 0),
+                std::next(temp_speed.begin(), critical_speed_pruining_index) );
+			}
+
 			if (temp_speed.empty()){
 				std::cerr << "Job " 
 				<< job.get_job_id()
