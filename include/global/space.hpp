@@ -805,9 +805,122 @@ namespace NP {
 					//  Set causal link vector as temp vector
 					causal_link = temp_links;
 				}
+				std::vector<std::vector<size_t>> reduced_links = reduce_links(causal_link);
+				std::vector<std::vector<size_t>> removed_links = remove_multiple_order(reduced_links);
+
 				// std::cout << "causal link consist of " << causal_link.size() << " links" << std::endl;
-				return causal_link;
+				return removed_links;
 				
+			}
+
+			std::vector<std::vector<size_t>> reduce_links(std::vector<std::vector<size_t>> links)
+			{
+				/*
+				Check the prioirty of the deadline miss job.
+				For every link, 
+					Start at the last element (Isolating job)
+					Run the job at the highest speed BCET (high_speed_cost.from())
+					Keep on adding jobs if the finish time is before the latest release time of deadline miss job
+					Once found the index, prune everything between the index and deadline miss job
+				*/
+				std::vector<std::vector<size_t>> reduced_links;
+				// initilaize the deadline miss job latest release time 
+				size_t dmj_index = links.front().front();
+				double dmj_latest_release_time = jobs[dmj_index].latest_arrival(); 
+				for (std::vector<size_t> link : links)
+				{
+					// Initilaize finish time variable 
+					double link_finish_time = jobs[link.back()].earliest_arrival(); // Initilaized to rmin of isolating job 
+					std::vector<size_t> reduced_link;
+					bool link_reduced = false;
+					// Iterate over the link from last to first
+					for (int k = link.size()-1 ; k > 0 ; k--)
+					{
+						// Pick the index, check the high_speed_BCET and add to finish time variable
+						if (link_finish_time < dmj_latest_release_time)
+						{
+							reduced_link.push_back(link[k]);
+							link_finish_time += jobs[link[k]].get_high_speed_cost().from();
+
+						}
+						else
+						{
+							// Check if priority of the job is lower (higher number)than the deadline miss job
+							if ( (jobs[link[k]].get_priority() > jobs[link.front()].get_priority()))
+							{
+								reduced_link.push_back(link.front()); 
+								std::reverse(reduced_link.begin(), reduced_link.end());
+								reduced_links.push_back(reduced_link);
+								link_reduced = true;
+								break;
+							}
+							else
+							{
+								reduced_link.push_back(link[k]);
+								link_finish_time += jobs[link[k]].get_high_speed_cost().from();
+							}
+									
+						}
+						//  If finish time is greater than DM latest release time then save the index of last added job
+						// Remove everything from deadline miss job till this index if the index is greater than 1 (Remove atleast 1 job)
+						//  Add the updated link to reduced links
+					}
+					if(!link_reduced)
+					{
+						reduced_links.push_back(link);
+					}
+				}
+
+				return reduced_links;
+			}
+
+			std::vector<std::vector<size_t>> remove_multiple_order(std::vector<std::vector<size_t>> links)
+			{
+				/*
+				For every link, 
+					check for multiple order set
+					select one and remove duplicates
+				*/
+				std::vector<std::vector<size_t>> sorted_links;
+				std::vector<std::vector<size_t>> removed_links;
+
+				for (std::vector<size_t> link : links)
+				{
+					// If removed link is empty then add the link
+					if (removed_links.empty())
+					{
+						removed_links.push_back(link);
+						std::sort(link.begin(), link.end()); 
+						sorted_links.push_back(link);
+
+					}
+					else{
+						// Check for all links in remove links,
+						// If there is a causal link with all same elements.
+						// If there is a link then continue, 
+						// Else, add it to remove links
+						std::vector<size_t> sorted = link;
+						std::sort(sorted.begin(), sorted.end()); 
+						bool already_exist;
+						for (std::vector<size_t> sorted_link : sorted_links)
+						{
+							if (sorted == sorted_link)
+							{
+								// std::cout << "Duplicate causal link found" << std::endl; 
+								already_exist = true;
+								break;
+							}
+						}
+						if(!already_exist)
+						{
+							removed_links.push_back(link);
+							sorted_links.push_back(sorted);
+						}
+					}
+					
+				}
+
+				return removed_links;
 			}
 
 
