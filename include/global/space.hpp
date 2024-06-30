@@ -103,18 +103,18 @@ namespace NP {
 						//  For deadline miss job create a set of causal link -> FUNCTION: get set of causal link for given job
 						std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
 						/////////////////// Debugging//////////////////////////////////
-						size_t causal_link_index = 0;
-						for (std::vector<size_t> link : causal_links)
-						{
-							std::cout  << " Causal link " << causal_link_index << " is : ";
-							for (size_t connection : link)
-							{
-								std::cout  << connection << " => ";
-							}
-							std::cout << std::endl;
-							causal_link_index += 1;
+						// size_t causal_link_index = 0;
+						// for (std::vector<size_t> link : causal_links)
+						// {
+						// 	std::cout  << " Causal link " << causal_link_index << " is : ";
+						// 	for (size_t connection : link)
+						// 	{
+						// 		std::cout  << connection << " => ";
+						// 	}
+						// 	std::cout << std::endl;
+						// 	causal_link_index += 1;
 
-						}
+						// }
 						////////////////////////////////////////////////////////////
 						//  Initialize best solution setting storage 
 						
@@ -805,11 +805,12 @@ namespace NP {
 					//  Set causal link vector as temp vector
 					causal_link = temp_links;
 				}
-				std::vector<std::vector<size_t>> reduced_links = reduce_links(causal_link);
-				std::vector<std::vector<size_t>> removed_links = remove_multiple_order(reduced_links);
-
-				// std::cout << "causal link consist of " << causal_link.size() << " links" << std::endl;
-				return removed_links;
+				// std::cout << "Causal have " << causal_link.size() << " links with first size " << causal_link.front().size()<<std::endl; 
+				// std::vector<std::vector<size_t>> reduced_links = reduce_links(causal_link);
+				// std::cout << "Reduced causal links have " << reduced_links.size() << " links with first size " << causal_link.front().size()<<std::endl; 
+				// std::vector<std::vector<size_t>> removed_links = remove_multiple_order(causal_link);
+				// std::cout << "Removed causal links have " << removed_links.size() << " links"<<std::endl; 
+				return causal_link;
 				
 			}
 
@@ -901,7 +902,7 @@ namespace NP {
 						// Else, add it to remove links
 						std::vector<size_t> sorted = link;
 						std::sort(sorted.begin(), sorted.end()); 
-						bool already_exist;
+						bool already_exist = false;
 						for (std::vector<size_t> sorted_link : sorted_links)
 						{
 							if (sorted == sorted_link)
