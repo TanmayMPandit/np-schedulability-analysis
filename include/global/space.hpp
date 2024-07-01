@@ -102,6 +102,7 @@ namespace NP {
 							// std::cout << "Deadline miss job is " << ultimate.relevant_jobs.back()<< std::endl;
 						//  For deadline miss job create a set of causal link -> FUNCTION: get set of causal link for given job
 						std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
+						std::cout << "Causal link size is " << causal_links.size() << std::endl;
 						/////////////////// Debugging//////////////////////////////////
 						// size_t causal_link_index = 0;
 						// for (std::vector<size_t> link : causal_links)
@@ -749,6 +750,150 @@ namespace NP {
 				Last_state_jobs job_result ={jobs_till_now,jobs_completed,};
 				return job_result;
 
+			}
+
+			std::vector<std::vector<size_t>> get_unique_causal_links()
+			{
+				//  For given set of jobs, return a vector of links
+				std::vector<std::vector<size_t>> causal_link;
+				//  Set variable for all link explored to false
+				bool all_link_explored = false;
+				//  Create initial link with just one vector with given job
+				std::vector<size_t> initial_link;
+				initial_link.push_back(relevant_jobs.back());
+				causal_link.push_back(initial_link);
+				//  While not all links explored,
+				while (!all_link_explored)
+				{
+					//  set all link explored to true
+					all_link_explored = true;
+					//  create a temp output vcetor
+					std::vector<std::vector<size_t>> temp_links;
+					//  For all vectors in causal link vector
+					for (std::vector<size_t> link : causal_link)
+					{
+						// Make a list of jobs that have causal connection to last job in the vector
+						std::vector<std::size_t> next_connections = causal_connections[link.back()];
+						//  For eachof the job 
+						bool added_connection = false;
+						for (size_t connection : next_connections)
+						{
+							//  Check if job can be added to the causal link
+							// Condition 1: Connected job cant already exist in link (Infinite link)
+							bool in_link = std::find(link.begin(), link.end(), connection) != link.end();
+							// //  Condition 2: Íf this connection has connection to deadline miss job and deadline miss job does not have this connection, then this happens after deadline miss job
+							bool deadline_miss_job_in_connection = (std::find(causal_connections[connection].begin(), causal_connections[connection].end(), relevant_jobs.back()) != causal_connections[connection].end()); 
+							bool connection_in_deadline_miss_job = (std::find(causal_connections[relevant_jobs.back()].begin(), causal_connections[relevant_jobs.back()].end(),connection) != causal_connections[relevant_jobs.back()].end());
+							bool follow_order = deadline_miss_job_in_connection ? connection_in_deadline_miss_job : true;  //if dm job in connection then check other way, if not then keep true
+							bool can_connect = !in_link && follow_order; // Can this connection be in the link
+							// bool can_connect = !in_link;
+							if (can_connect)
+							{
+								std::vector<std::size_t> updated_link = link;
+								// create a temp vector which is same ans initial and add connected jobs
+								updated_link.push_back(connection);
+								//  Add this temp vector to tempt output vector
+								temp_links.push_back(updated_link);
+								//  If job exist, then set false for all link explored 
+								all_link_explored = false;
+								added_connection = true;
+							}
+						}
+						//  if no new connection added then add the old link
+						if (!added_connection) temp_links.push_back(link);
+					}
+					
+					std::vector<std::vector<size_t>> unique_links = remove_redundant_links(temp_links);
+
+					//  Set causal link vector as temp vector
+					causal_link = unique_links;
+				}
+				return causal_link;
+				
+			}
+			
+			std::vector<std::vector<size_t>> remove_redundant_links(std::vector<std::vector<size_t>> temp_links)
+			{
+				/*
+					Remove all the duplicates from temp_links
+					- Cluster all unique 
+					- For each link in cluster, check last elements
+					- For each cluster, make next clustered connection vector for all valid connections
+					- Explore all elemts as from cluster and make a new vector for links 
+				*/
+				std::vector<std::vector<size_t>> result;  // Final result
+				std::vector<std::vector<size_t>> extended_result;  // Extended result
+				std::vector<std::vector<size_t>> last_elements; // Index of last jobs for link in result
+				std::vector<std::vector<size_t>> sorted_result; // Sorted result to compare (Added same way as result just kept sorted for comparision)
+				std::vector<std::vector<size_t>> sorted_links; //  Sorted temp links
+				// copy temp link to sorted links.
+				sorted_links = temp_links;
+				//  Sort all of the vectors in sorted links
+				for(std::vector<size_t>& link : sorted_links)
+				{
+					std::sort(link.begin(), link.end());
+				}
+				// Add first temp link to result, sorted result(from sorted_links) and add last element to last element vector
+				result.push_back(temp_links.front());
+				sorted_result.push_back(sorted_links.front());
+				std::vector<size_t> last= {temp_links.front().back()};
+				last_elements.push_back(last);
+				//  remove from both templink and sorted links
+				temp_links.erase(temp_links.begin());
+				sorted_links.erase(sorted_links.begin());
+				// With index, go over sorted links, if it is in sorted result then at index of sorted result add last element in last elements vector
+				for(int i=0 ; i < sorted_links.size() ; i++)
+				{
+					auto it = std::find(sorted_result.begin(), sorted_result.end(), sorted_links[i]);
+					if (it != sorted_result.end()) 
+					{
+						int index = std::distance(sorted_result.begin(), it);
+						last_elements[index].push_back(temp_links[i].back());
+					} else { //  If no, then append to sorted result and also append repective temp_link to result and append last element (as a vector)
+						result.push_back(temp_links[i]);
+						sorted_result.push_back(sorted_links[i]);
+						std::vector<size_t> last_new= {temp_links[i].back()};
+						last_elements.push_back(last_new);
+					}
+				}
+				
+				for (int i=0 ; i < result.size() ; i++)
+				{
+					std::vector<std::size_t> next_connections; // make a possible connection vector
+					for(std::size_t element : last_elements[i]) // For each of the last element
+					{
+						next_connections.insert(next_connections.end(), causal_connections[element].begin(),causal_connections[element].end());  // Extend the next connection with causal connection 
+					}
+					sort( next_connections.begin(), next_connections.end() );
+					next_connections.erase( unique( next_connections.begin(), next_connections.end() ), next_connections.end() ); // Remove any duplicates
+					bool connection_added = false;
+					for (size_t connection : next_connections)
+					{
+						//  Check if job can be added to the causal link
+						// Condition 1: Connected job cant already exist in link (Infinite link)
+						bool in_link = std::find(result[i].begin(), result[i].end(), connection) != result[i].end();
+						// //  Condition 2: Íf this connection has connection to deadline miss job and deadline miss job does not have this connection, then this happens after deadline miss job
+						bool deadline_miss_job_in_connection = (std::find(causal_connections[connection].begin(), causal_connections[connection].end(),result[i].front()) != causal_connections[connection].end()); 
+						bool connection_in_deadline_miss_job = (std::find(causal_connections[result[i].front()].begin(), causal_connections[result[i].front()].end(),connection) != causal_connections[result[i].front()].end());
+						bool follow_order = deadline_miss_job_in_connection ? connection_in_deadline_miss_job : true;  //if dm job in connection then check other way, if not then keep true
+						bool can_connect = !in_link && follow_order; // Can this connection be in the link
+						// bool can_connect = !in_link;
+						if (can_connect)
+						{
+							std::vector<std::size_t> updated_link = result[i];
+							// create a temp vector which is same ans initial and add connected jobs
+							updated_link.push_back(connection);
+							//  Add this temp vector to tempt output vector
+							extended_result.push_back(updated_link);
+							connection_added = true;
+						}
+					}
+					if(!connection_added)
+					{
+						extended_result.push_back(result[i]);
+					}
+				}
+				return extended_result;
 			}
 
 
