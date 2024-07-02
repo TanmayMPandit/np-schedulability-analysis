@@ -101,8 +101,9 @@ namespace NP {
 						ultimate.update_causal_connections();
 							// std::cout << "Deadline miss job is " << ultimate.relevant_jobs.back()<< std::endl;
 						//  For deadline miss job create a set of causal link -> FUNCTION: get set of causal link for given job
-						std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
-						std::cout << "Causal link size is " << causal_links.size() << std::endl;
+						// std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
+						std::vector<size_t> all_connected = ultimate.get_all_connected_jobs();
+						// std::cout << "Causal link size is " << causal_links.size() << std::endl;
 						/////////////////// Debugging//////////////////////////////////
 						// size_t causal_link_index = 0;
 						// for (std::vector<size_t> link : causal_links)
@@ -120,7 +121,8 @@ namespace NP {
 						//  Initialize best solution setting storage 
 						
 						energy_aware_possible = false;
-						speed_scaling_result scaling_result = s.speed_scale(causal_links,prob,opts);
+						// speed_scaling_result scaling_result = s.set_to_highest(causal_links,prob,opts);
+						speed_scaling_result scaling_result = s.set_all_connected_to_highest(all_connected,prob,opts);
 						energy_aware_possible = scaling_result.solution_found;
 						//  Once all checked, check if there exist a seeting,
 						if (energy_aware_possible)
@@ -393,6 +395,121 @@ namespace NP {
 				return result;
 			}
 
+			speed_scaling_result set_to_highest(std::vector<std::vector<size_t>> links, const Problem& prob, const Analysis_options& opts)
+			{
+				size_t link_left = links.size();
+				std::cout << "Number of links: " << link_left<<std::endl;
+
+				bool speed_scaling_solution_exist = false;
+				std::vector<size_t> energy_efficient_link;
+				std::vector<std::vector<float>> energy_efficient_speed;
+				float energy_efficient_consumption = std::numeric_limits<float>::infinity(); // intialize this with existing speed space
+				for (NP::Job<Time> j:jobs)
+				{
+					energy_efficient_speed.push_back(j.get_speed_space());
+				}
+				Workload jobset = jobs;
+				std::vector<float> highest_speed = {1.0};
+				for (std::vector<size_t> link : links)
+				{
+					for (size_t j:link)
+					{ 
+						jobset[j].update_speed_space(highest_speed);
+					}
+					std::deque<State> temp_state = get_scaling_state(link);
+					auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+				                     opts.max_depth, opts.num_buckets);
+					scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
+					for (size_t job : link) scaling_space.add_relevant_job(job);
+					scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
+					scaling_space.explore();
+					if (scaling_space.is_schedulable())
+					{
+						float energy_consumption = scaling_space.get_space_energy_consumption();
+						energy_efficient_link = link;
+						for (size_t job : link)
+						{
+							energy_efficient_speed[job] = jobset[job].get_speed_space();
+						}
+						speed_scaling_solution_exist = true;
+						break;
+					}
+					link_left -= 1;
+					std::cout << "link left: " << link_left << std::endl;
+				}
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				return result;
+
+			}
+
+			std::vector<size_t> get_all_connected_jobs()
+			{
+				std::vector<size_t> result;
+				std::vector<size_t> jobs_to_check;
+				result.push_back(relevant_jobs.back());
+				jobs_to_check.push_back(relevant_jobs.back());
+				while(!jobs_to_check.empty())
+				{
+					std::vector<size_t> new_jobs;
+					for (size_t job : jobs_to_check)
+					{
+						std::vector<std::size_t> next_connections = causal_connections[job];
+						for (size_t connection : next_connections)
+						{
+							// If connection not in result, add to result and new jobs
+							bool in_result = std::find(result.begin(), result.end(), connection) != result.end();
+							if (!in_result)
+							{
+								result.push_back(connection);
+								new_jobs.push_back(connection);
+							}
+						}
+					}
+					jobs_to_check = new_jobs;
+				}
+				return result;
+			}
+
+			speed_scaling_result set_all_connected_to_highest(std::vector<size_t> all_jobs, const Problem& prob, const Analysis_options& opts)
+			{
+				bool speed_scaling_solution_exist = false;
+				std::vector<size_t> energy_efficient_link;
+				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
+				for (NP::Job<Time> j:jobs)
+				{
+					// std::cout << "Job "<< j.get_id() << " has lowest speed of " <<  j.get_speed_space().front() <<std::endl;
+					energy_efficient_speed.push_back(j.get_speed_space());
+				}
+				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
+				Workload jobset = jobs;
+				std::vector<float> highest_speed = {1.0};
+				for (size_t j:all_jobs)
+				{ 
+					jobset[j].update_speed_space(highest_speed);
+				}
+				std::deque<State> temp_state = get_scaling_state(all_jobs);
+				auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+									opts.max_depth, opts.num_buckets);
+				scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
+				for (size_t job : all_jobs) scaling_space.add_relevant_job(job);
+				scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
+				scaling_space.explore();
+				if (scaling_space.is_schedulable())
+				{
+					energy_efficient_link = all_jobs;
+					for (size_t job : all_jobs)
+					{
+						energy_efficient_speed[job] = jobset[job].get_speed_space();
+					}
+					speed_scaling_solution_exist = true;
+				}
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				return result;
+
+			}
+
+
+
 			speed_scaling_result speed_scale(std::vector<std::vector<size_t>> links, const Problem& prob, const Analysis_options& opts)
 			{
 				// Search based optimization 
@@ -470,11 +587,11 @@ namespace NP {
 								//  If feasible, store/update
 								// If energy consumption is less
 								// std::cout << " Max energy consumption is " << scaling_space.get_space_energy_consumption()  << " and upper threshold is " << energy_efficient_consumption << std::endl;
-								for (size_t job : scaling_jobs)
-									{
-										// std::cout << "Job "<< job << " has solution lowest speed of " <<  jobset[job].get_speed_space().front() <<std::endl;
-										// energy_efficient_speed[job] = jobset[job].get_speed_space();
-									}
+								// for (size_t job : scaling_jobs)
+								// 	{
+								// 		// std::cout << "Job "<< job << " has solution lowest speed of " <<  jobset[job].get_speed_space().front() <<std::endl;
+								// 		// energy_efficient_speed[job] = jobset[job].get_speed_space();
+								// 	}
 								float energy_consumption = scaling_space.get_space_energy_consumption();
 								if (energy_consumption < energy_efficient_consumption)
 								{
@@ -1986,33 +2103,33 @@ namespace NP {
 						}
 
 					}
-					if (is_explore_graph)
-					{
-						// Add energy consumption and causal connection based pruning
-						bool energy_based_pruning = get_space_energy_consumption() > Upper_energy_threshold;
-						// if(energy_based_pruning) std::cout<< "Energy exceeded" <<std::endl;
-						bool connected_link = true;
-						for (int i = relevant_jobs.size()-1 ; i>0; i--)
-						{
-							bool job_complete = true;
-							for (State& state : exploration_front)
-							{
-								job_complete &= !state.job_incomplete(relevant_jobs[i-1]) && !state.job_incomplete(relevant_jobs[i]);
-							}
-							if (job_complete)
-							{
-								// std::cout<< "considering jobs: " << relevant_jobs[i-1] << " and " << relevant_jobs[i] <<std::endl;
-								connected_link &= causally_overlapped(relevant_jobs[i-1],relevant_jobs[i]);
+					// if (is_explore_graph)
+					// {
+					// 	// Add energy consumption and causal connection based pruning
+					// 	bool energy_based_pruning = get_space_energy_consumption() > Upper_energy_threshold;
+					// 	// if(energy_based_pruning) std::cout<< "Energy exceeded" <<std::endl;
+					// 	bool connected_link = true;
+					// 	for (int i = relevant_jobs.size()-1 ; i>0; i--)
+					// 	{
+					// 		bool job_complete = true;
+					// 		for (State& state : exploration_front)
+					// 		{
+					// 			job_complete &= !state.job_incomplete(relevant_jobs[i-1]) && !state.job_incomplete(relevant_jobs[i]);
+					// 		}
+					// 		if (job_complete)
+					// 		{
+					// 			// std::cout<< "considering jobs: " << relevant_jobs[i-1] << " and " << relevant_jobs[i] <<std::endl;
+					// 			connected_link &= causally_overlapped(relevant_jobs[i-1],relevant_jobs[i]);
 
-								// if (!causally_overlapped(relevant_jobs[i-1],relevant_jobs[i])) std::cout<< "Link broken between jobs " << relevant_jobs[i-1] << " and "<< relevant_jobs[i] <<std::endl;
-							}
-						}
-						if (energy_based_pruning || !connected_link) 
-						{
-							aborted = true;
-							break;
-						}
-					}
+					// 			// if (!causally_overlapped(relevant_jobs[i-1],relevant_jobs[i])) std::cout<< "Link broken between jobs " << relevant_jobs[i-1] << " and "<< relevant_jobs[i] <<std::endl;
+					// 		}
+					// 	}
+					// 	if (energy_based_pruning || !connected_link) 
+					// 	{
+					// 		aborted = true;
+					// 		break;
+					// 	}
+					// }
 
 					// allocate states space for next depth
 					states_storage.emplace_back();
