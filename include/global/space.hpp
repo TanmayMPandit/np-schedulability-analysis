@@ -502,11 +502,85 @@ namespace NP {
 						energy_efficient_speed[job] = jobset[job].get_speed_space();
 					}
 					speed_scaling_solution_exist = true;
+					double deadline_miss_slack = scaling_space.get_slack(all_jobs.front());
+					// Make energy_efficient speed upper bound for distributed slack
+					// put in while loop if slack is over 0 and schedulable.
+
+					if(deadline_miss_slack > 0)
+					{
+						std::vector<std::vector<float>> slack_distributed_speeds =  distribute_slack_chronologically(deadline_miss_slack,jobs,all_jobs);
+						for (size_t j:all_jobs) jobset[j].update_speed_space(slack_distributed_speeds[j]);
+						auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+								opts.max_depth, opts.num_buckets);
+						scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
+						for (size_t job : all_jobs) scaling_space.add_relevant_job(job);
+						scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
+						scaling_space.explore();
+						if (scaling_space.is_schedulable())
+						{
+							for (size_t job : all_jobs)
+							{
+								energy_efficient_speed[job] = jobset[job].get_speed_space();
+							} 
+							deadline_miss_slack = scaling_space.get_slack(all_jobs.front());
+						}
+					}
 				}
+				
 				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
 				return result;
 
 			}
+
+			std::vector<std::vector<float>>  distribute_slack_chronologically(double deadline_miss_slack,Workload jobs, std::vector<size_t> all_jobs)
+			{
+				std::vector<std::vector<float>> result; // intialize this with existing speed space
+				Workload jobset = jobs;
+				for (NP::Job<Time> j:jobset)
+				{
+					result.push_back(j.get_speed_space());
+				}
+				double remaining_slack = deadline_miss_slack;
+
+				for (size_t index : all_jobs)
+				{
+					// std::cout << "Index speed before: " << jobset[index].get_speed_space().front() << std::endl;
+					if(remaining_slack > jobset[index].maximal_cost())
+					{
+						// std::cout << "Feasible at the lowest speed" << std::endl;
+						remaining_slack -= jobset[index].maximal_cost();
+						// std::cout << "Remaining slack is" <<  remaining_slack << std::endl;
+					}
+					else
+					{
+						std::vector<float> speed = jobset[index].get_speed_space();
+						bool updated = false;
+						while(speed.size() > 1)
+						{
+							speed.erase(speed.begin());
+							jobset[index].update_speed_space(speed);
+							if(remaining_slack > jobset[index].maximal_cost())
+							{
+								// std::cout << "Remaining slack is" <<  remaining_slack << " and maximal cost is " <<  jobset[index].maximal_cost() << std::endl;
+								remaining_slack -= jobset[index].maximal_cost();
+								// std::cout << "Remaining slack is" <<  remaining_slack << std::endl;
+								break;
+							}
+						}
+						// std::cout << "Index speed after: " << speed.front() << std::endl;
+						result[index] = speed;
+					}
+
+				}
+				return result;
+			}
+
+			double get_slack(size_t index)
+			{
+				double slack = jobs[index].get_deadline() - rta[index].second ;
+				// std::cout << "Job " << index << " has deadline at "<<jobs[index].get_deadline() << " and WCRT at " << rta[index].second << " with slack " << slack<<std::endl;
+				return slack;
+			} 
 
 
 
@@ -816,7 +890,7 @@ namespace NP {
 				bool arrival_time_overlap = !((job_x.latest_arrival() <= job_j.earliest_arrival())|| (job_j.latest_arrival() <= job_x.earliest_arrival()));
 				bool connected = !disjoint && (arrival_time_overlap 
 				|| (!arrival_time_overlap && (job_x.get_priority()<job_j.get_priority()))
-				|| ((x_st.first < job_j.earliest_arrival()) && (job_x.get_priority() > job_j.get_priority())));
+				|| ((x_st.first < job_j.latest_arrival()) && (job_x.get_priority() > job_j.get_priority())));
 				return connected;
 			}
 
@@ -1103,7 +1177,7 @@ namespace NP {
 						if (link_finish_time < dmj_latest_release_time)
 						{
 							reduced_link.push_back(link[k]);
-							link_finish_time += jobs[link[k]].get_high_speed_cost().from();
+							link_finish_time += jobs[link[k]].get_high_speed_cost().till();
 
 						}
 						else
@@ -1120,7 +1194,7 @@ namespace NP {
 							else
 							{
 								reduced_link.push_back(link[k]);
-								link_finish_time += jobs[link[k]].get_high_speed_cost().from();
+								link_finish_time += jobs[link[k]].get_high_speed_cost().till();
 							}
 									
 						}
