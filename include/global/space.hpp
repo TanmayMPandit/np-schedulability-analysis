@@ -104,25 +104,65 @@ namespace NP {
 						// std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
 						std::vector<size_t> all_connected = ultimate.get_all_connected_jobs();
 						// std::cout << "Causal link size is " << causal_links.size() << std::endl;
-						/////////////////// Debugging//////////////////////////////////
-						// size_t causal_link_index = 0;
-						// for (std::vector<size_t> link : causal_links)
-						// {
-						// 	std::cout  << " Causal link " << causal_link_index << " is : ";
-						// 	for (size_t connection : link)
-						// 	{
-						// 		std::cout  << connection << " => ";
-						// 	}
-						// 	std::cout << std::endl;
-						// 	causal_link_index += 1;
-
-						// }
-						////////////////////////////////////////////////////////////
+						
 						//  Initialize best solution setting storage 
 						
+						
 						energy_aware_possible = false;
+						//////////////////////////////////DF with distribution/////////////////////////////////////////
+						// Put this in a for loop with counter set to threshold
+						DF_link causal_link_result =  ultimate.get_df_causal_link(0); // first connection heuristic
+						// Get speed scaling result
+						speed_scaling_result distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
+						//  if speed scaling result is positive  then upadte scaling result
+						// If not, backtrack and keep on checking until all links are explored
+						if(!distribution_result.solution_found)
+						{
+							std::vector<std::vector<size_t>> previously_considered_links;
+							std::vector<size_t> sorted_list = causal_link_result.link;
+							std::sort(sorted_list.begin(), sorted_list.end()); 
+							previously_considered_links.push_back(sorted_list);
+							while(!distribution_result.solution_found)
+							{
+								causal_link_result.link.pop_back();
+								int num_of_removed = causal_link_result.valid_connections.size();
+								for(int i = causal_link_result.valid_connections.size()-1 ; i >= 0; i--)
+								{
+									if (causal_link_result.valid_connections[i].size() > 1)
+									{
+										num_of_removed = causal_link_result.valid_connections.size()-1-i;
+									}
+								}
+								if(num_of_removed == causal_link_result.valid_connections.size())
+								{
+									break;
+								}
+								for (int i = 0 ; i < num_of_removed ; i ++)
+								{
+									causal_link_result.link.pop_back();
+									causal_link_result.valid_connections.pop_back();
+								}
+								causal_link_result.valid_connections.back().erase(causal_link_result.valid_connections.back().begin());
+								causal_link_result = ultimate.explore_df_causal_link(causal_link_result,0);
+								std::vector<size_t> sorted_bt_list = causal_link_result.link;
+								std::sort(sorted_bt_list.begin(), sorted_bt_list.end());
+								auto it = std::find(previously_considered_links.begin(), previously_considered_links.end(), sorted_bt_list);
+								if (it != previously_considered_links.end()) 
+								{
+									continue;
+								}
+								distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
+								if (!distribution_result.solution_found) previously_considered_links.push_back(sorted_bt_list);
+							}
+						}
+						
+						speed_scaling_result scaling_result;
+						scaling_result = distribution_result;
+						///////////////////////////////////////////////////////////////////////////////////////////////
+
+						// speed_scaling_result scaling_result = s.speed_scale(causal_links,prob,opts);
 						// speed_scaling_result scaling_result = s.set_to_highest(causal_links,prob,opts);
-						speed_scaling_result scaling_result = s.set_all_connected_to_highest(all_connected,prob,opts);
+						// speed_scaling_result scaling_result = s.set_all_connected_to_highest(all_connected,prob,opts);
 						energy_aware_possible = scaling_result.solution_found;
 						//  Once all checked, check if there exist a seeting,
 						if (energy_aware_possible)
@@ -577,10 +617,196 @@ namespace NP {
 
 			double get_slack(size_t index)
 			{
-				double slack = jobs[index].get_deadline() - rta[index].second ;
+				double slack = abs(jobs[index].get_deadline() - rta[index].second );
 				// std::cout << "Job " << index << " has deadline at "<<jobs[index].get_deadline() << " and WCRT at " << rta[index].second << " with slack " << slack<<std::endl;
 				return slack;
 			} 
+
+			speed_scaling_result speed_scale_with_distribution(std::vector<size_t> link, const Problem& prob, const Analysis_options& opts)
+			{
+				// Input : Link to explore, prob and opts for state space
+				// Output: scaling result 
+				bool speed_scaling_solution_exist = false;
+				std::vector<size_t> energy_efficient_link;
+				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
+				std::vector<std::vector<float>> energy_efficient_speed;
+				for (NP::Job<Time> j:jobs)
+				{
+					energy_efficient_speed.push_back(j.get_speed_space());
+				}
+				// Identify the postive lateness
+				double positive_lateness = get_slack(link.front());
+				// distribute the lateness with shortest job first such that total decreased wcet is over lateness
+				std::vector<std::vector<float>> lateness_distributed_speeds =  distribute_positive_lateness(positive_lateness,link);
+				// test on explore space (disable energy pruning)
+				Workload jobset = jobs;
+				for (size_t j:link) jobset[j].update_speed_space(lateness_distributed_speeds[j]);
+				std::deque<State> temp_state = get_scaling_state(link);
+				auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+						opts.max_depth, opts.num_buckets);
+				scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
+				for (size_t job : link) scaling_space.add_relevant_job(job);
+				scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
+				scaling_space.explore();
+				// If feasible, return result,
+				if (scaling_space.is_schedulable())
+				{
+					energy_efficient_link = link;
+					for (size_t job : link)
+					{
+						energy_efficient_speed[job] = jobset[job].get_speed_space();
+					}
+					speed_scaling_solution_exist = true;
+				}
+				// If infeasible, identify the negative lateness 
+				else
+				{
+					std::vector<float> highest_speed = {1.0};
+					for (size_t j:link)
+					{ 
+						jobset[j].update_speed_space(highest_speed);
+					}
+					auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+									opts.max_depth, opts.num_buckets);
+					scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
+					for (size_t job : link) scaling_space.add_relevant_job(job);
+					scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
+					scaling_space.explore();
+					if (scaling_space.is_schedulable())
+					{
+						double negative_lateness = scaling_space.get_slack(link.front());
+						// distribute the lateness with longest job first such that total increased wcet stays under lateness 
+						lateness_distributed_speeds = distribute_negative_lateness(negative_lateness,link);
+						// Always find first longest job that can reduce speed and stay under the lateness limit
+						for (size_t j:link) jobset[j].update_speed_space(lateness_distributed_speeds[j]);
+						auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+						opts.max_depth, opts.num_buckets);
+						scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
+						for (size_t job : link) scaling_space.add_relevant_job(job);
+						scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
+						scaling_space.explore();
+						if (scaling_space.is_schedulable())
+						{
+							energy_efficient_link = link;
+							for (size_t job : link)
+							{
+								energy_efficient_speed[job] = jobset[job].get_speed_space();
+							}
+							speed_scaling_solution_exist = true;
+
+						}
+						else
+						{
+							// Check feasibility (should be feasible as this is pessimistic)
+							energy_efficient_link = link;
+							for (size_t job : link)
+							{
+								energy_efficient_speed[job] = highest_speed;
+							}
+							speed_scaling_solution_exist = true;
+						}
+			
+					}
+					else
+					{
+						// Return if not feasible with all running at highest speed
+						energy_efficient_link = link;
+						for (size_t job : link)
+						{
+							energy_efficient_speed[job] = jobset[job].get_speed_space();
+						}
+						speed_scaling_solution_exist = false;
+					}
+				}
+				
+				// Return result
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				return result;
+			}
+
+			std::vector<std::vector<float>>  distribute_positive_lateness(double deadline_miss_lateness, std::vector<size_t> link)
+			{
+				// Distribute positive lateness high to low
+				// Init the lateness_distributed_variable to zero
+				std::vector<std::vector<float>> result;
+				for (NP::Job<Time> j:jobs)
+				{
+					result.push_back(j.get_speed_space());
+				} 
+				Workload jobset = jobs;
+				double distributed_lateness = 0.0;
+				// Make a copy of link and sort based on high spped WCET (lowest first) 
+				std::vector<size_t> sorted_list = link;
+				std::sort(sorted_list.begin(), sorted_list.end(), [this](size_t a, size_t b) {return sort_by_shortest_job_first(a, b);});
+				while(distributed_lateness < deadline_miss_lateness)
+				{
+					if(sorted_list.empty()) break;
+					// In sorted list, increase the speed of the job until
+					size_t increasing_index = sorted_list.front();
+					std::vector<float> speed_space = jobset[increasing_index].get_speed_space();
+					// 	- Either speed settings run out 
+					if(speed_space.size() > 1)
+					{
+						double current_WCET = jobset[increasing_index].maximal_cost();
+						speed_space.erase(speed_space.begin());
+						jobset[increasing_index].update_speed_space(speed_space);
+						double updated_WCET = jobset[increasing_index].maximal_cost();
+						distributed_lateness += abs(current_WCET-updated_WCET);
+						result[increasing_index] = speed_space;
+
+					}
+					else
+					{
+						result[increasing_index] = speed_space;
+						sorted_list.erase(sorted_list.begin());
+					}
+				
+				//  - Distributed lateness go over 
+
+				// For each increase, check if distributed_lateness + reduced wcet > deadline_miss_lateness
+				//  If not distributed_lateness =+ reduced wcet 
+				}
+				
+
+				return result;
+			}
+
+			bool sort_by_shortest_job_first(size_t index_1, size_t index_2) 
+			{ 
+				// Lambda function to sort list with shortest_high_speed_WCET first
+				return(jobs[index_1].get_high_speed_cost().upto() < jobs[index_2].get_high_speed_cost().upto());
+			} 
+
+			bool sort_by_longest_job_first(size_t index_1, size_t index_2) 
+			{ 
+				// Lambda function to sort list with longest_high_speed_WCET first
+				return(jobs[index_1].get_high_speed_cost().upto() > jobs[index_2].get_high_speed_cost().upto());
+			} 
+
+			std::vector<std::vector<float>>  distribute_negative_lateness(double deadline_miss_lateness, std::vector<size_t> link)
+			{
+				std::vector<std::vector<float>> result; 
+				for (NP::Job<Time> j:jobs)
+				{
+					result.push_back(j.get_speed_space());
+				} 
+				Workload jobset = jobs;
+				double distributed_lateness = deadline_miss_lateness;
+				std::vector<size_t> sorted_list = link;
+				std::sort(sorted_list.begin(), sorted_list.end(), [this](size_t a, size_t b) {return sort_by_longest_job_first(a, b);});
+				// Distribute negative lateness high to low
+				// Init the lateness_distributed_variable to deadline_miss_lateness
+				// Assign high speed to all
+				// Make a copy of link and sort based on high spped WCET (highest first)
+
+				// In sorted list, decrease the speed of the job until 
+				// 	- Either Lowest speed is acheived 
+				//  - Distributed lateness go over 
+
+				// For each increase, check if distributed_lateness + reduced wcet > deadline_miss_lateness
+				//  If not distributed_lateness =+ reduced wcet 
+				return result;
+			}
 
 
 
@@ -843,7 +1069,7 @@ namespace NP {
 								// CHECK CAUSAL CONNECTION
 								if (causally_connected(index,potential_index))
 								{
-									// std::cout << "Job " << index << " is causally connected to job " << potential_index << std::endl;
+									std::cout << "Job " << index << " is causally connected to job " << potential_index << std::endl;
 								causal_connections[index].push_back(potential_index);//  If causaly connected, add it to the causal connection list 
 								}
 							}
@@ -1085,6 +1311,150 @@ namespace NP {
 					}
 				}
 				return extended_result;
+			}
+
+			struct  DF_link
+			{
+				std::vector<size_t> link;
+				std::vector<std::vector<size_t>> valid_connections;
+			};
+			
+			DF_link explore_df_causal_link(DF_link backtracked_link, size_t heuristic_index)
+			{
+				std::vector<size_t> result_link = backtracked_link.link;
+				std::vector<std::vector<size_t>> link_valid_connections = backtracked_link.valid_connections;
+				result_link.push_back(link_valid_connections.back().front());
+				bool link_complete = false;
+				while(!link_complete)
+				{
+					size_t connection_index = result_link.back();
+					std::vector<std::size_t> next_connections = causal_connections[connection_index];
+					std::vector<std::size_t> valid_connections;
+					for (size_t connection : next_connections)
+					{
+						bool in_link = std::find(result_link.begin(), result_link.end(), connection) != result_link.end();
+						bool deadline_miss_job_in_connection = (std::find(causal_connections[connection].begin(), causal_connections[connection].end(), result_link.front()) != causal_connections[connection].end()); 
+						bool connection_in_deadline_miss_job = (std::find(causal_connections[result_link.front()].begin(), causal_connections[result_link.front()].end(),connection) != causal_connections[result_link.front()].end());
+						bool follow_order = deadline_miss_job_in_connection ? connection_in_deadline_miss_job : true; 
+						if(!in_link && follow_order)  valid_connections.push_back(connection);
+						
+					}
+					if(valid_connections.empty())
+					{
+						link_complete = true;
+						break;
+					}
+					
+					size_t selected_connection;
+					switch (heuristic_index)
+					{
+						case 1: // Connection with highest connections
+							selected_connection = select_highest_out_connection(valid_connections);
+							break;
+						case 2: // Connection with lowest connections
+							selected_connection = select_lowest_out_connection(valid_connections);
+							break;
+						case 3: // Connection with highest execution
+							selected_connection = select_longest_connection(valid_connections);
+							break;
+						case 4: // Connection with lowest execution
+							selected_connection = select_shortest_connection(valid_connections);
+							break;
+						default:
+							selected_connection = select_first_connection(valid_connections); // Default link if no match
+							break;
+					}
+					result_link.push_back(selected_connection);
+					link_valid_connections.push_back(valid_connections);
+				}
+				DF_link output = {result_link,link_valid_connections};
+				return output;
+			}
+
+			DF_link get_df_causal_link(size_t heuristic_index)
+			{
+				std::vector<size_t> result_link;
+				result_link.push_back(relevant_jobs.back());
+				bool link_complete = false;
+				std::vector<std::vector<size_t>> link_valid_connections;
+				while(!link_complete)
+				{
+					size_t connection_index = result_link.back();
+					std::vector<std::size_t> next_connections = causal_connections[connection_index];
+					std::vector<std::size_t> valid_connections;
+					for (size_t connection : next_connections)
+					{
+						bool in_link = std::find(result_link.begin(), result_link.end(), connection) != result_link.end();
+						bool deadline_miss_job_in_connection = (std::find(causal_connections[connection].begin(), causal_connections[connection].end(), result_link.front()) != causal_connections[connection].end()); 
+						bool connection_in_deadline_miss_job = (std::find(causal_connections[result_link.front()].begin(), causal_connections[result_link.front()].end(),connection) != causal_connections[result_link.front()].end());
+						bool follow_order = deadline_miss_job_in_connection ? connection_in_deadline_miss_job : true; 
+						if(!in_link && follow_order)  valid_connections.push_back(connection);
+						
+					}
+					if(valid_connections.empty())
+					{
+						link_complete = true;
+						break;
+					}
+					
+					size_t selected_connection;
+					switch (heuristic_index)
+					{
+						case 1: // Connection with highest connections
+							selected_connection = select_highest_out_connection(valid_connections);
+							break;
+						case 2: // Connection with lowest connections
+							selected_connection = select_lowest_out_connection(valid_connections);
+							break;
+						case 3: // Connection with highest execution
+							selected_connection = select_longest_connection(valid_connections);
+							break;
+						case 4: // Connection with lowest execution
+							selected_connection = select_shortest_connection(valid_connections);
+							break;
+						default:
+							selected_connection = select_first_connection(valid_connections); // Default link if no match
+							break;
+					}
+					result_link.push_back(selected_connection);
+					link_valid_connections.push_back(valid_connections);
+				}
+				DF_link output = {result_link,link_valid_connections};
+				return output;
+			}
+
+			std::size_t select_first_connection(std::vector<std::size_t> possible_connections)
+			{
+				std::size_t result;
+				result = possible_connections.front();
+				return result;
+			}
+
+			std::size_t select_highest_out_connection(std::vector<std::size_t> possible_connections)
+			{
+				std::size_t result;
+				result = possible_connections.front();
+				return result;
+			}
+
+			std::size_t select_lowest_out_connection(std::vector<std::size_t> possible_connections)
+			{
+				std::size_t result;
+				result = possible_connections.front();
+				return result;
+			}
+
+			std::size_t select_longest_connection(std::vector<std::size_t> possible_connections)
+			{
+				std::size_t result;
+				result = possible_connections.front();
+				return result;
+			}
+			std::size_t select_shortest_connection(std::vector<std::size_t> possible_connections)
+			{
+				std::size_t result;
+				result = possible_connections.front();
+				return result;
 			}
 
 
