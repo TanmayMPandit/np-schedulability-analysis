@@ -751,23 +751,14 @@ namespace NP {
 						speed_space.erase(speed_space.begin());
 						jobset[increasing_index].update_speed_space(speed_space);
 						double updated_WCET = jobset[increasing_index].maximal_cost();
-						distributed_lateness += abs(current_WCET-updated_WCET);
-						result[increasing_index] = speed_space;
-
+						distributed_lateness += abs(current_WCET-updated_WCET);	
 					}
 					else
 					{
-						result[increasing_index] = speed_space;
 						sorted_list.erase(sorted_list.begin());
 					}
-				
-				//  - Distributed lateness go over 
-
-				// For each increase, check if distributed_lateness + reduced wcet > deadline_miss_lateness
-				//  If not distributed_lateness =+ reduced wcet 
+					result[increasing_index] = speed_space;
 				}
-				
-
 				return result;
 			}
 
@@ -790,6 +781,11 @@ namespace NP {
 				{
 					result.push_back(j.get_speed_space());
 				} 
+				std::vector<float> highest_speed = {1.0}; // Set all jobs in the link to highest speed
+				for (size_t index : link)
+				{
+					result[index] = highest_speed;
+				}
 				Workload jobset = jobs;
 				double distributed_lateness = deadline_miss_lateness;
 				std::vector<size_t> sorted_list = link;
@@ -798,13 +794,35 @@ namespace NP {
 				// Init the lateness_distributed_variable to deadline_miss_lateness
 				// Assign high speed to all
 				// Make a copy of link and sort based on high spped WCET (highest first)
-
-				// In sorted list, decrease the speed of the job until 
-				// 	- Either Lowest speed is acheived 
-				//  - Distributed lateness go over 
-
-				// For each increase, check if distributed_lateness + reduced wcet > deadline_miss_lateness
-				//  If not distributed_lateness =+ reduced wcet 
+				while(distributed_lateness > 0)
+				{
+					if(sorted_list.empty()) break;
+					// For the first job,
+					size_t increasing_index = sorted_list.front();
+					std::vector<float> speed_space = jobset[increasing_index].get_speed_space();
+					double high_speed_WCET = jobset[increasing_index].get_high_speed_cost().upto();
+					double updated_WCET = jobset[increasing_index].maximal_cost();
+					if(!(distributed_lateness <= abs(high_speed_WCET-updated_WCET)))
+					{
+						while(speed_space.size() > 2) // there are atleast 2 speed two check
+						{
+							speed_space.erase(speed_space.begin());
+							jobset[increasing_index].update_speed_space(speed_space);
+							updated_WCET = jobset[increasing_index].maximal_cost();
+							if(distributed_lateness <= abs(high_speed_WCET-updated_WCET))
+							{
+								distributed_lateness -= abs(high_speed_WCET-updated_WCET);
+								break;
+							}
+						}
+					}
+					else
+					{
+						distributed_lateness -= abs(high_speed_WCET-updated_WCET);
+					}
+					result[increasing_index] = speed_space;
+					sorted_list.erase(sorted_list.begin());
+				}
 				return result;
 			}
 
