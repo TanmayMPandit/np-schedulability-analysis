@@ -132,6 +132,7 @@ namespace NP {
 									if (causal_link_result.valid_connections[i].size() > 1)
 									{
 										num_of_removed = causal_link_result.valid_connections.size()-1-i;
+										break;
 									}
 								}
 								if(num_of_removed == causal_link_result.valid_connections.size())
@@ -534,7 +535,7 @@ namespace NP {
 
 			speed_scaling_result set_all_connected_to_highest(std::vector<size_t> all_jobs, const Problem& prob, const Analysis_options& opts)
 			{
-				// std::cout << "Setting all to highest" << std::endl;
+				std::cout << "Setting all to highest" << std::endl;
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
@@ -762,7 +763,13 @@ namespace NP {
 				double distributed_lateness = 0.0;
 				// Make a copy of link and sort based on high spped WCET (lowest first) 
 				std::vector<size_t> sorted_list = link;
+				// std::cout << "List before sorting (shortest) : " ;
+				// for (size_t element : sorted_list) std::cout << element << ", ";
+				// std::cout << std::endl;
 				std::sort(sorted_list.begin(), sorted_list.end(), [this](size_t a, size_t b) {return sort_by_shortest_job_first(a, b);});
+				// std::cout << "List after sorting : " ;
+				// for (size_t element : sorted_list) std::cout << element << ", ";
+				// std::cout << std::endl;
 				while(distributed_lateness < deadline_miss_lateness)
 				{
 					if(sorted_list.empty()) break;
@@ -814,7 +821,13 @@ namespace NP {
 				Workload jobset = jobs;
 				double distributed_lateness = deadline_miss_lateness;
 				std::vector<size_t> sorted_list = link;
+				// std::cout << "List before sorting (longest) : " ;
+				// for (size_t element : sorted_list) std::cout << element << ", ";
+				// std::cout << std::endl;
 				std::sort(sorted_list.begin(), sorted_list.end(), [this](size_t a, size_t b) {return sort_by_longest_job_first(a, b);});
+				// std::cout << "List after sorting : " ;
+				// for (size_t element : sorted_list) std::cout << element << ", ";
+				// std::cout << std::endl;
 				// Distribute negative lateness high to low
 				// Init the lateness_distributed_variable to deadline_miss_lateness
 				// Assign high speed to all
