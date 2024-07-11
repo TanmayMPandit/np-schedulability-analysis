@@ -88,7 +88,7 @@ static Analysis_result analyze(
 	typename NP::Precedence_constraints edges = is_yaml ? NP::parse_yaml_dag_file(in) : NP::parse_dag_file(dag_in);
 	
 	if(want_dvfs){
-		std::cout << "Preprocessing" << std::endl;
+		// std::cout << "Preprocessing" << std::endl;
 		for (NP::Job<Time>& job: jobs){
 			std::vector<float> temp_speed;
 			for (float  selected_speed: valid_speed){

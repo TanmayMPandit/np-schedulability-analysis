@@ -22,7 +22,7 @@
 
 #include "problem.hpp"
 #include "clock.hpp"
-#include "global/solver.hpp"
+// #include "global/solver.hpp"
 
 #include "global/state.hpp"
 
@@ -35,8 +35,8 @@ namespace NP {
 			public:
 
 			typedef Scheduling_problem<Time> Problem;
-			typedef typename NP::Job<Time>::SolverJobInput SolverJobInput;
-			typedef typename LinkSolver::SolverResult SolverResult;
+			// typedef typename NP::Job<Time>::SolverJobInput SolverJobInput;
+			// typedef typename LinkSolver::SolverResult SolverResult;
 			typedef typename Scheduling_problem<Time>::Workload Workload;
 			typedef Schedule_state<Time> State;
 
@@ -74,8 +74,8 @@ namespace NP {
 				
 				if(!s.is_schedulable())
 				{
-					std::cout << "Deadline miss noticed. Energy aware scheduling initialized." << std::endl;
-					std::cout << "Deadline miss job index is "<< s.get_deadline_miss_job() << std::endl;
+					// std::cout << "Deadline miss noticed. Energy aware scheduling initialized." << std::endl;
+					// std::cout << "Deadline miss job index is "<< s.get_deadline_miss_job() << std::endl;
 					Problem ultimate_problem = prob;
 					for (NP::Job<Time>& job: ultimate_problem.jobs)
 					{
@@ -118,6 +118,7 @@ namespace NP {
 						// If not, backtrack and keep on checking until all links are explored
 						if(!distribution_result.solution_found)
 						{
+							// std::cout << "Causal link is not useful. Creating another " << std::endl;
 							std::vector<std::vector<size_t>> previously_considered_links;
 							std::vector<size_t> sorted_list = causal_link_result.link;
 							std::sort(sorted_list.begin(), sorted_list.end()); 
@@ -167,14 +168,14 @@ namespace NP {
 						//  Once all checked, check if there exist a seeting,
 						if (energy_aware_possible)
 						{
-							std::cout << "\033[1;32mEnergy aware scaling solution found. \033[0m" <<std::endl;
+							// std::cout << "\033[1;32mEnergy aware scaling solution found. \033[0m" <<std::endl;
 							//  Somehow update S, speed, exploration time and graph
 							
 							s.prepare_reset(scaling_result);
 							s.explore();
 							if(!s.is_schedulable())
 							{
-								std::cout << "\033[1;31mAnother deadline miss with updated solution.\033[0m" <<std::endl;
+								// std::cout << "\033[1;31mAnother deadline miss with updated solution.\033[0m" <<std::endl;
 								ultimate.add_relevant_job(s.get_deadline_miss_job());
 								ultimate.prepare_ultimate_reset(scaling_result);
 								energy_aware_possible = true; //Just to avoid infinite loop fpr now
@@ -250,157 +251,157 @@ namespace NP {
 			}
 
 			
-			speed_scaling_result solve_causal(std::vector<std::vector<size_t>> links, const Problem& prob, const Analysis_options& opts)
-			{
-				// solver based optimization
-				/*
-				Input : Links
-						Problem (SAG space)
-						Opts (SAG space)
+			// speed_scaling_result solve_causal(std::vector<std::vector<size_t>> links, const Problem& prob, const Analysis_options& opts)
+			// {
+			// 	// solver based optimization
+			// 	/*
+			// 	Input : Links
+			// 			Problem (SAG space)
+			// 			Opts (SAG space)
 
-				Output: Scaling result (solution_exist , energy_efficient_link, energy_efficient_speeds)
-				*/ 
+			// 	Output: Scaling result (solution_exist , energy_efficient_link, energy_efficient_speeds)
+			// 	*/ 
 						
-				/*
-				For each link,
-					check the energy, computation time, release time, deadline table for each link. 
-					IMP: causal link in the solver is opposite to SAG
-					Initialize the solver and solve
-					Add feasible link index to a vector and sort the vector based on the objective value (min to max)
-					(Hueristic: smallest energy consumption can provide better feasible result)
-				*/  
-				std::vector<LinkSolver> link_solvers;
-				std::vector<SolverResult> link_results;
-				std::vector<size_t>  feasible_link_index;
-				bool solution_found = false;
-				std::vector<size_t> energy_efficient_link;
-				std::vector<std::vector<float>> energy_efficient_speed;
-				for (NP::Job<Time> j:jobs)
-				{
-					// std::cout << "Job "<< j.get_id() << " has lowest speed of " <<  j.get_speed_space().front() <<std::endl;
-					energy_efficient_speed.push_back(j.get_speed_space());
-				}
-				// std::cout << "Initial energy is " << get_empty_space_energy_consumption() << std::endl;
-				std::vector<float> link_energy (links.size(),get_empty_space_energy_consumption()); 
-				for (int i = 0 ; i < links.size() ; i++)
-				{
-					std::vector<size_t> link = links[i];
-					//  Update energy without the causal link element
-					std::deque<std::vector<double>> Ei_k;
-					std::deque<std::vector<double>> Ci_k;
-					std::deque<double> Ri;
-					std::deque<double> Di;
-					for (size_t job : link)
-					{
-						link_energy[i] -= jobs[job].get_energy();
-						SolverJobInput result = jobs[job].get_solver_job_input();
-						Ei_k.push_front(result.energy_consumption);
-						Ci_k.push_front(result.computation_time);
-						Ri.push_front(result.latest_release_time);
-						Di.push_front(result.deadline);
-					}
+			// 	/*
+			// 	For each link,
+			// 		check the energy, computation time, release time, deadline table for each link. 
+			// 		IMP: causal link in the solver is opposite to SAG
+			// 		Initialize the solver and solve
+			// 		Add feasible link index to a vector and sort the vector based on the objective value (min to max)
+			// 		(Hueristic: smallest energy consumption can provide better feasible result)
+			// 	*/  
+			// 	std::vector<LinkSolver> link_solvers;
+			// 	std::vector<SolverResult> link_results;
+			// 	std::vector<size_t>  feasible_link_index;
+			// 	bool solution_found = false;
+			// 	std::vector<size_t> energy_efficient_link;
+			// 	std::vector<std::vector<float>> energy_efficient_speed;
+			// 	for (NP::Job<Time> j:jobs)
+			// 	{
+			// 		// std::cout << "Job "<< j.get_id() << " has lowest speed of " <<  j.get_speed_space().front() <<std::endl;
+			// 		energy_efficient_speed.push_back(j.get_speed_space());
+			// 	}
+			// 	// std::cout << "Initial energy is " << get_empty_space_energy_consumption() << std::endl;
+			// 	std::vector<float> link_energy (links.size(),get_empty_space_energy_consumption()); 
+			// 	for (int i = 0 ; i < links.size() ; i++)
+			// 	{
+			// 		std::vector<size_t> link = links[i];
+			// 		//  Update energy without the causal link element
+			// 		std::deque<std::vector<double>> Ei_k;
+			// 		std::deque<std::vector<double>> Ci_k;
+			// 		std::deque<double> Ri;
+			// 		std::deque<double> Di;
+			// 		for (size_t job : link)
+			// 		{
+			// 			link_energy[i] -= jobs[job].get_energy();
+			// 			SolverJobInput result = jobs[job].get_solver_job_input();
+			// 			Ei_k.push_front(result.energy_consumption);
+			// 			Ci_k.push_front(result.computation_time);
+			// 			Ri.push_front(result.latest_release_time);
+			// 			Di.push_front(result.deadline);
+			// 		}
 
-					link_solvers.push_back(LinkSolver(Ei_k,Ci_k,Ri,Di));
-					SolverResult result = link_solvers.back().solve();
-					link_results.push_back(result);
-					if (result.solved){
-						std::cout << "Link solver successful with obj value" << result.objective_value << std::endl; 
-						// std::cout << "Lowest speed for jobs : ";
-						// for (std::vector<float> speed : result.job_speeds)
-						// {
-						// 	std::cout << speed.front() << ", " ;
-						// }
-						// std::cout << std::endl;
-						link_energy[i] += result.objective_value;
-						// std::cout << "Link energy : " << link_energy[i]  <<std::endl;
-						feasible_link_index.push_back(i);
-					}
-				}	
-				// Sort the feasible link index from low to high
-				std::sort(feasible_link_index.begin(), feasible_link_index.end(),[&link_energy](size_t a, size_t b) { return link_energy[a] < link_energy[b]; });
-				float energy_threshold = std::numeric_limits<float>::infinity();;
-			// while not empty. Pick the first link
-				while(!feasible_link_index.empty())
-				{
-					size_t selected_link_index = feasible_link_index.front();
-					std::deque<std::vector<float>> efficient_speed = link_results[selected_link_index].job_speeds;
-			// 1:search the explore SAG with solved speeds
-					Workload jobset = jobs;
-					std::deque<State> temp_state = get_scaling_state(links[selected_link_index]);
-					for (int i = 0 ; i < links[selected_link_index].size(); i++)
-					{
-						jobset[links[selected_link_index][i]].update_speed_space(efficient_speed[i]);
-					}
-					auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
-				                     opts.max_depth, opts.num_buckets);
-					scaling_space.set_explore_space(temp_state);
-					scaling_space.explore();
-					if (scaling_space.is_schedulable())
-					{
-						// std::cout << " Causal link " << selected_link_index << " is feasible" << std::endl;
-						solution_found = true;
-						if (scaling_space.get_space_energy_consumption() < energy_threshold){
-							energy_threshold = scaling_space.get_space_energy_consumption();
-							energy_efficient_link = links[selected_link_index];
-							for (int e = 0; e < energy_efficient_link.size() ; e++)
-							{
-								energy_efficient_speed[energy_efficient_link[e]]  = efficient_speed[e];
-							}
-							if (!feasible_link_index.empty()) {
-							feasible_link_index.erase(feasible_link_index.begin()); 
-							}
-							std::vector<size_t> links_to_remove;
-							for (size_t index : feasible_link_index)
-							{
-								if(link_energy[index] >= energy_threshold){
-									links_to_remove.push_back(index);
-								}
-							}
-							for (size_t index :links_to_remove)
-							{
-								auto it = std::find(feasible_link_index.begin(), feasible_link_index.end(), 
-									index); 
-									if (it != feasible_link_index.end()) { 
-										feasible_link_index.erase(it); 
-									} 
-							}
-							links_to_remove.clear();
+			// 		link_solvers.push_back(LinkSolver(Ei_k,Ci_k,Ri,Di));
+			// 		SolverResult result = link_solvers.back().solve();
+			// 		link_results.push_back(result);
+			// 		if (result.solved){
+			// 			std::cout << "Link solver successful with obj value" << result.objective_value << std::endl; 
+			// 			// std::cout << "Lowest speed for jobs : ";
+			// 			// for (std::vector<float> speed : result.job_speeds)
+			// 			// {
+			// 			// 	std::cout << speed.front() << ", " ;
+			// 			// }
+			// 			// std::cout << std::endl;
+			// 			link_energy[i] += result.objective_value;
+			// 			// std::cout << "Link energy : " << link_energy[i]  <<std::endl;
+			// 			feasible_link_index.push_back(i);
+			// 		}
+			// 	}	
+			// 	// Sort the feasible link index from low to high
+			// 	std::sort(feasible_link_index.begin(), feasible_link_index.end(),[&link_energy](size_t a, size_t b) { return link_energy[a] < link_energy[b]; });
+			// 	float energy_threshold = std::numeric_limits<float>::infinity();;
+			// // while not empty. Pick the first link
+			// 	while(!feasible_link_index.empty())
+			// 	{
+			// 		size_t selected_link_index = feasible_link_index.front();
+			// 		std::deque<std::vector<float>> efficient_speed = link_results[selected_link_index].job_speeds;
+			// // 1:search the explore SAG with solved speeds
+			// 		Workload jobset = jobs;
+			// 		std::deque<State> temp_state = get_scaling_state(links[selected_link_index]);
+			// 		for (int i = 0 ; i < links[selected_link_index].size(); i++)
+			// 		{
+			// 			jobset[links[selected_link_index][i]].update_speed_space(efficient_speed[i]);
+			// 		}
+			// 		auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+			// 	                     opts.max_depth, opts.num_buckets);
+			// 		scaling_space.set_explore_space(temp_state);
+			// 		scaling_space.explore();
+			// 		if (scaling_space.is_schedulable())
+			// 		{
+			// 			// std::cout << " Causal link " << selected_link_index << " is feasible" << std::endl;
+			// 			solution_found = true;
+			// 			if (scaling_space.get_space_energy_consumption() < energy_threshold){
+			// 				energy_threshold = scaling_space.get_space_energy_consumption();
+			// 				energy_efficient_link = links[selected_link_index];
+			// 				for (int e = 0; e < energy_efficient_link.size() ; e++)
+			// 				{
+			// 					energy_efficient_speed[energy_efficient_link[e]]  = efficient_speed[e];
+			// 				}
+			// 				if (!feasible_link_index.empty()) {
+			// 				feasible_link_index.erase(feasible_link_index.begin()); 
+			// 				}
+			// 				std::vector<size_t> links_to_remove;
+			// 				for (size_t index : feasible_link_index)
+			// 				{
+			// 					if(link_energy[index] >= energy_threshold){
+			// 						links_to_remove.push_back(index);
+			// 					}
+			// 				}
+			// 				for (size_t index :links_to_remove)
+			// 				{
+			// 					auto it = std::find(feasible_link_index.begin(), feasible_link_index.end(), 
+			// 						index); 
+			// 						if (it != feasible_link_index.end()) { 
+			// 							feasible_link_index.erase(it); 
+			// 						} 
+			// 				}
+			// 				links_to_remove.clear();
 							
 						
-						}
-						else{
-							if (!feasible_link_index.empty()) feasible_link_index.erase(feasible_link_index.begin()); 
-						}
+			// 			}
+			// 			else{
+			// 				if (!feasible_link_index.empty()) feasible_link_index.erase(feasible_link_index.begin()); 
+			// 			}
 						
-					}
-					else
-					{
-						if(!feasible_link_index.empty()) feasible_link_index.erase(feasible_link_index.begin()); 
-						// //  check for broken link
-						// std::cout << " Need to fix broken link"  << std::endl;
-						// broken_link_result link_result = scaling_space.check_for_broken_link(links[selected_link_index]);
-						// // Add constraint 
-						// link_solvers[selected_link_index].broken_link_constraint(link_result.situation,link_result.job_index,link_result.limit);
-						// SolverResult solver_result = link_solvers[selected_link_index].solve();
-						// if(solver_result.solved)
-						// {
-						// 	// If solved, update the result
-						// 	link_results[selected_link_index] = solver_result;
-						// }
-						// else
-						// {
-						// 	// If not remove
-						// 	if (!feasible_link_index.empty()) feasible_link_index.erase(feasible_link_index.begin()); 
-						// }
-					}
-				}
+			// 		}
+			// 		else
+			// 		{
+			// 			if(!feasible_link_index.empty()) feasible_link_index.erase(feasible_link_index.begin()); 
+			// 			// //  check for broken link
+			// 			// std::cout << " Need to fix broken link"  << std::endl;
+			// 			// broken_link_result link_result = scaling_space.check_for_broken_link(links[selected_link_index]);
+			// 			// // Add constraint 
+			// 			// link_solvers[selected_link_index].broken_link_constraint(link_result.situation,link_result.job_index,link_result.limit);
+			// 			// SolverResult solver_result = link_solvers[selected_link_index].solve();
+			// 			// if(solver_result.solved)
+			// 			// {
+			// 			// 	// If solved, update the result
+			// 			// 	link_results[selected_link_index] = solver_result;
+			// 			// }
+			// 			// else
+			// 			// {
+			// 			// 	// If not remove
+			// 			// 	if (!feasible_link_index.empty()) feasible_link_index.erase(feasible_link_index.begin()); 
+			// 			// }
+			// 		}
+			// 	}
 				
 
-				//  return efficient solution
+			// 	//  return efficient solution
 				
-				speed_scaling_result result = {solution_found,energy_efficient_link,energy_efficient_speed};
-				return result;
-			}
+			// 	speed_scaling_result result = {solution_found,energy_efficient_link,energy_efficient_speed};
+			// 	return result;
+			// }
 
 
 			broken_link_result check_for_broken_link(std::vector<size_t> link)
@@ -651,6 +652,7 @@ namespace NP {
 				// If feasible, return result,
 				if (scaling_space.is_schedulable())
 				{
+					// std::cout << "Feasible solution with positive lateness " << std::endl;
 					energy_efficient_link = link;
 					for (size_t job : link)
 					{
@@ -674,6 +676,7 @@ namespace NP {
 					scaling_space.explore();
 					if (scaling_space.is_schedulable())
 					{
+						// std::cout << "Feasible solution with negative lateness " << std::endl;
 						double negative_lateness = scaling_space.get_slack(link.front());
 						// distribute the lateness with longest job first such that total increased wcet stays under lateness 
 						lateness_distributed_speeds = distribute_negative_lateness(negative_lateness,link);
@@ -1087,7 +1090,7 @@ namespace NP {
 								// CHECK CAUSAL CONNECTION
 								if (causally_connected(index,potential_index))
 								{
-									std::cout << "Job " << index << " is causally connected to job " << potential_index << std::endl;
+									// std::cout << "Job " << index << " is causally connected to job " << potential_index << std::endl;
 								causal_connections[index].push_back(potential_index);//  If causaly connected, add it to the causal connection list 
 								}
 							}
@@ -1711,7 +1714,7 @@ namespace NP {
 			}
 			void set_ultimate_space()
 			{
-				std::cout << "Space is initialized as ultimate space" << std::endl;
+				// std::cout << "Space is initialized as ultimate space" << std::endl;
 				is_ultimate_graph = true;
 			}
 
