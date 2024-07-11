@@ -116,10 +116,10 @@ namespace NP {
 						speed_scaling_result distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
 						//  if speed scaling result is positive  then upadte scaling result
 						// If not, backtrack and keep on checking until all links are explored
+						std::vector<std::vector<size_t>> previously_considered_links;
 						if(!distribution_result.solution_found)
 						{
 							// std::cout << "Causal link is not useful. Creating another " << std::endl;
-							std::vector<std::vector<size_t>> previously_considered_links;
 							std::vector<size_t> sorted_list = causal_link_result.link;
 							std::sort(sorted_list.begin(), sorted_list.end()); 
 							previously_considered_links.push_back(sorted_list);
@@ -162,6 +162,16 @@ namespace NP {
 						if(!scaling_result.solution_found)
 						{
 							scaling_result = s.set_all_connected_to_highest(all_connected,prob,opts);
+							std::cout << "All connected jobs :"  ;
+							for (size_t job : all_connected) std::cout << job << ",";
+							std::cout << std::endl;
+							std::cout << "All unique links :"  << std::endl;
+							for (std::vector<size_t> link:previously_considered_links)
+							{
+								for (size_t job : link) std::cout << job << ",";
+								std::cout << std::endl;
+							}
+
 						}
 						///////////////////////////////////////////////////////////////////////////////////////////////
 
