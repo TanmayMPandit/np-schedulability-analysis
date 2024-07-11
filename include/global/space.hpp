@@ -162,15 +162,15 @@ namespace NP {
 						if(!scaling_result.solution_found)
 						{
 							scaling_result = s.set_all_connected_to_highest(all_connected,prob,opts);
-							std::cout << "All connected jobs :"  ;
-							for (size_t job : all_connected) std::cout << job << ",";
-							std::cout << std::endl;
-							std::cout << "All unique links :"  << std::endl;
-							for (std::vector<size_t> link:previously_considered_links)
-							{
-								for (size_t job : link) std::cout << job << ",";
-								std::cout << std::endl;
-							}
+							// std::cout << "All connected jobs :"  ;
+							// for (size_t job : all_connected) std::cout << job << ",";
+							// std::cout << std::endl;
+							// std::cout << "All unique links :"  << std::endl;
+							// for (std::vector<size_t> link:previously_considered_links)
+							// {
+							// 	for (size_t job : link) std::cout << job << ",";
+							// 	std::cout << std::endl;
+							// }
 
 						}
 						///////////////////////////////////////////////////////////////////////////////////////////////
@@ -527,7 +527,7 @@ namespace NP {
 
 			speed_scaling_result set_all_connected_to_highest(std::vector<size_t> all_jobs, const Problem& prob, const Analysis_options& opts)
 			{
-				// std::cout << "Setting all to highest" << std::endl;
+				std::cout << "Setting all to highest" << std::endl;
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
