@@ -681,7 +681,6 @@ namespace NP {
 					scaling_space.explore();
 					if (scaling_space.is_schedulable())
 					{
-						// std::cout << "Feasible solution with negative lateness " << std::endl;
 						double negative_lateness = scaling_space.get_slack(link.front());
 						// distribute the lateness with longest job first such that total increased wcet stays under lateness 
 						lateness_distributed_speeds = distribute_negative_lateness(negative_lateness,link);
@@ -718,6 +717,7 @@ namespace NP {
 					else
 					{
 						// Return if not feasible with all running at highest speed
+						std::cout << "Infeasible at all jobs running to highest " << std::endl;
 						energy_efficient_link = link;
 						for (size_t job : link)
 						{
