@@ -71,9 +71,9 @@ namespace NP {
 				
 				
 #ifdef CONFIG_DVFS
-				
-				if(!s.is_schedulable())
+				if(!s.is_schedulable() && opts.multi_speed)
 				{
+
 					// std::cout << "Deadline miss noticed. Energy aware scheduling initialized." << std::endl;
 					// std::cout << "Deadline miss job index is "<< s.get_deadline_miss_job() << std::endl;
 					Problem ultimate_problem = prob;

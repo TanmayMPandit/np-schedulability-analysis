@@ -108,7 +108,7 @@ static Analysis_result analyze(
 				if (last_job_energy < job_before_energy)
 				{
 					critical_speed_pruining_index = s;
-					std::cout << job.get_id() << " has critical speed " << temp_speed[temp_speed.size()-1-s] << std::endl;
+					// std::cout << job.get_id() << " has critical speed " << temp_speed[temp_speed.size()-1-s] << std::endl;
 					break;
 				}
 
@@ -145,6 +145,7 @@ static Analysis_result analyze(
 	opts.early_exit = !continue_after_dl_miss;
 	opts.num_buckets = problem.jobs.size();
 	opts.be_naive = want_naive;
+	opts.multi_speed = (valid_speed.size() > 1);
 	
 
 	// Actually call the analysis engine

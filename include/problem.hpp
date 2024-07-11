@@ -86,12 +86,15 @@ namespace NP {
 		// of the main workload index be?
 		std::size_t num_buckets;
 
+		bool multi_speed;
+
 		Analysis_options()
 		: timeout(0)
 		, max_depth(0)
 		, early_exit(true)
 		, num_buckets(1000)
 		, be_naive(false)
+		, multi_speed(false)
 		{
 		}
 	};
