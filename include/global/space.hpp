@@ -148,7 +148,11 @@ namespace NP {
 								causal_link_result.valid_connections.back().erase(causal_link_result.valid_connections.back().begin());
 								causal_link_result = ultimate.explore_df_causal_link(causal_link_result,branching_heuristic);
 								explored_link +=1;
-								if(explored_link >= 100) break;
+								if(explored_link >= 100) 
+								{
+									// std::cout << "Explore limit reached" <<std::endl;
+									break;
+								}
 								std::vector<size_t> sorted_bt_list = causal_link_result.link;
 								std::sort(sorted_bt_list.begin(), sorted_bt_list.end());
 								auto it = std::find(previously_considered_links.begin(), previously_considered_links.end(), sorted_bt_list);
@@ -1503,25 +1507,39 @@ namespace NP {
 			std::vector<std::size_t> select_highest_out_connection(std::vector<std::size_t> possible_connections)
 			{
 				std::vector<std::size_t> result = possible_connections;
+				std::sort(result.begin(), result.end(), [this](size_t a, size_t b) {return sort_by_high_out_job_first(a, b);});
 				return result;
 			}
+			bool sort_by_high_out_job_first(size_t index_1, size_t index_2) 
+			{ 
+				return(causal_connections[index_1].size() > causal_connections[index_2].size());
+			} 
 
 			std::vector<std::size_t> select_lowest_out_connection(std::vector<std::size_t> possible_connections)
 			{
 				std::vector<std::size_t> result = possible_connections;
+				std::sort(result.begin(), result.end(), [this](size_t a, size_t b) {return sort_by_low_out_job_first(a, b);});
 				return result;
 			}
+			bool sort_by_low_out_job_first(size_t index_1, size_t index_2) 
+			{ 
+				return(causal_connections[index_1].size() < causal_connections[index_2].size());
+			} 
 
 			std::vector<std::size_t> select_longest_connection(std::vector<std::size_t> possible_connections)
 			{
 				std::vector<std::size_t> result = possible_connections;
+				std::sort(result.begin(), result.end(), [this](size_t a, size_t b) {return sort_by_longest_job_first(a, b);});
 				return result;
 			}
+			
 			std::vector<std::size_t> select_shortest_connection(std::vector<std::size_t> possible_connections)
 			{
 				std::vector<std::size_t> result = possible_connections;
+				std::sort(result.begin(), result.end(), [this](size_t a, size_t b) {return sort_by_shortest_job_first(a, b);});
 				return result;
 			}
+			
 
 
 			std::vector<std::vector<size_t>> get_causal_links()
