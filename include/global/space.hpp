@@ -161,7 +161,7 @@ namespace NP {
 						scaling_result = distribution_result;
 						if(!scaling_result.solution_found)
 						{
-							speed_scaling_result scaling_result = s.set_all_connected_to_highest(all_connected,prob,opts);
+							scaling_result = s.set_all_connected_to_highest(all_connected,prob,opts);
 						}
 						///////////////////////////////////////////////////////////////////////////////////////////////
 
