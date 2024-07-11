@@ -219,7 +219,14 @@ namespace NP {
 				}
 				else
 				{
-					std::cout << "\033[1;32mEnergy consumption at lowest feasible speed : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
+					if(s.is_schedulable()) 
+					{
+						std::cout << "\033[1;32mEnergy consumption at lowest feasible speed : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
+					}
+					else
+					{
+						std::cout  << " Can't solve this " << std::endl ;
+					}
 				}
 #endif
 				// std::cout << s;
@@ -527,7 +534,7 @@ namespace NP {
 
 			speed_scaling_result set_all_connected_to_highest(std::vector<size_t> all_jobs, const Problem& prob, const Analysis_options& opts)
 			{
-				std::cout << "Setting all to highest" << std::endl;
+				// std::cout << "Setting all to highest" << std::endl;
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
