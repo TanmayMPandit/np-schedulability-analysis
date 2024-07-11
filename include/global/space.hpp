@@ -517,7 +517,7 @@ namespace NP {
 
 			speed_scaling_result set_all_connected_to_highest(std::vector<size_t> all_jobs, const Problem& prob, const Analysis_options& opts)
 			{
-				std::cout << "Setting all to highest" << std::endl;
+				// std::cout << "Setting all to highest" << std::endl;
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
@@ -717,7 +717,7 @@ namespace NP {
 					else
 					{
 						// Return if not feasible with all running at highest speed
-						std::cout << "Infeasible at all jobs running to highest " << std::endl;
+						// std::cout << "Infeasible at all jobs running to highest " << std::endl;
 						energy_efficient_link = link;
 						for (size_t job : link)
 						{
