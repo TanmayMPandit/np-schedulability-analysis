@@ -159,6 +159,10 @@ namespace NP {
 						
 						speed_scaling_result scaling_result;
 						scaling_result = distribution_result;
+						if(!scaling_result.solution_found)
+						{
+							speed_scaling_result scaling_result = s.set_all_connected_to_highest(all_connected,prob,opts);
+						}
 						///////////////////////////////////////////////////////////////////////////////////////////////
 
 						// speed_scaling_result scaling_result = s.speed_scale(causal_links,prob,opts);
@@ -513,6 +517,7 @@ namespace NP {
 
 			speed_scaling_result set_all_connected_to_highest(std::vector<size_t> all_jobs, const Problem& prob, const Analysis_options& opts)
 			{
+				std::cout << "Setting all to highest" << std::endl;
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
@@ -543,29 +548,29 @@ namespace NP {
 						energy_efficient_speed[job] = jobset[job].get_speed_space();
 					}
 					speed_scaling_solution_exist = true;
-					double deadline_miss_slack = scaling_space.get_slack(all_jobs.front());
-					// Make energy_efficient speed upper bound for distributed slack
-					// put in while loop if slack is over 0 and schedulable.
+					// double deadline_miss_slack = scaling_space.get_slack(all_jobs.front());
+					// // Make energy_efficient speed upper bound for distributed slack
+					// // put in while loop if slack is over 0 and schedulable.
 
-					if(deadline_miss_slack > 0)
-					{
-						std::vector<std::vector<float>> slack_distributed_speeds =  distribute_slack_chronologically(deadline_miss_slack,jobs,all_jobs);
-						for (size_t j:all_jobs) jobset[j].update_speed_space(slack_distributed_speeds[j]);
-						auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
-								opts.max_depth, opts.num_buckets);
-						scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
-						for (size_t job : all_jobs) scaling_space.add_relevant_job(job);
-						scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
-						scaling_space.explore();
-						if (scaling_space.is_schedulable())
-						{
-							for (size_t job : all_jobs)
-							{
-								energy_efficient_speed[job] = jobset[job].get_speed_space();
-							} 
-							deadline_miss_slack = scaling_space.get_slack(all_jobs.front());
-						}
-					}
+					// if(deadline_miss_slack > 0)
+					// {
+					// 	std::vector<std::vector<float>> slack_distributed_speeds =  distribute_slack_chronologically(deadline_miss_slack,jobs,all_jobs);
+					// 	for (size_t j:all_jobs) jobset[j].update_speed_space(slack_distributed_speeds[j]);
+					// 	auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+					// 			opts.max_depth, opts.num_buckets);
+					// 	scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
+					// 	for (size_t job : all_jobs) scaling_space.add_relevant_job(job);
+					// 	scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
+					// 	scaling_space.explore();
+					// 	if (scaling_space.is_schedulable())
+					// 	{
+					// 		for (size_t job : all_jobs)
+					// 		{
+					// 			energy_efficient_speed[job] = jobset[job].get_speed_space();
+					// 		} 
+					// 		deadline_miss_slack = scaling_space.get_slack(all_jobs.front());
+					// 	}
+					// }
 				}
 				
 				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
