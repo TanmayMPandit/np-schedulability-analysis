@@ -181,13 +181,13 @@ namespace NP {
 								energy_aware_possible = true; //Just to avoid infinite loop fpr now
 							}
 							else{
-								std::cout << "\033[1;32mEnergy aware speed setting found : \033[0m"  ;
-								for (std::vector<float> efficient_speed : scaling_result.energy_efficient_speed)
-								{
-									std::cout << efficient_speed.front() << ", ";
-								}
-								std::cout<<std::endl;
-								std::cout << "\033[1;32mEnergy consumption : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
+								// std::cout << "\033[1;32mEnergy aware speed setting found : \033[0m"  ;
+								// for (std::vector<float> efficient_speed : scaling_result.energy_efficient_speed)
+								// {
+								// 	std::cout << efficient_speed.front() << ", ";
+								// }
+								// std::cout<<std::endl;
+								// std::cout << "\033[1;32mEnergy consumption : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
 								energy_aware_possible = false;
 							}
 						
