@@ -92,6 +92,7 @@ namespace NP {
 					ultimate.set_ultimate_space(); // Define search space as ultimate space
 					ultimate.add_relevant_job(s.get_deadline_miss_job()); // Add deadline miss job as relevant jobs
 					bool energy_aware_possible = true;
+					size_t branching_heuristic = 0; 
 					//  Make causal link array with vector for each job
 					while (energy_aware_possible)
 					{
@@ -107,11 +108,10 @@ namespace NP {
 						
 						//  Initialize best solution setting storage 
 						
-						
 						energy_aware_possible = false;
 						//////////////////////////////////DF with distribution/////////////////////////////////////////
 						// Put this in a for loop with counter set to threshold
-						DF_link causal_link_result =  ultimate.get_df_causal_link(0); // first connection heuristic
+						DF_link causal_link_result =  ultimate.get_df_causal_link(branching_heuristic); // first connection heuristic
 						// Get speed scaling result
 						speed_scaling_result distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
 						//  if speed scaling result is positive  then upadte scaling result
@@ -123,6 +123,7 @@ namespace NP {
 							std::vector<size_t> sorted_list = causal_link_result.link;
 							std::sort(sorted_list.begin(), sorted_list.end()); 
 							previously_considered_links.push_back(sorted_list);
+							size_t explored_link = 1;
 							while(!distribution_result.solution_found)
 							{
 								causal_link_result.link.pop_back();
@@ -145,7 +146,9 @@ namespace NP {
 									causal_link_result.valid_connections.pop_back();
 								}
 								causal_link_result.valid_connections.back().erase(causal_link_result.valid_connections.back().begin());
-								causal_link_result = ultimate.explore_df_causal_link(causal_link_result,0);
+								causal_link_result = ultimate.explore_df_causal_link(causal_link_result,branching_heuristic);
+								explored_link +=1;
+								if(explored_link >= 100) break;
 								std::vector<size_t> sorted_bt_list = causal_link_result.link;
 								std::sort(sorted_bt_list.begin(), sorted_bt_list.end());
 								auto it = std::find(previously_considered_links.begin(), previously_considered_links.end(), sorted_bt_list);
@@ -1401,27 +1404,33 @@ namespace NP {
 						break;
 					}
 					
+					std::vector<std::size_t> sorted_connections;
 					size_t selected_connection;
 					switch (heuristic_index)
 					{
 						case 1: // Connection with highest connections
-							selected_connection = select_highest_out_connection(valid_connections);
+							sorted_connections = select_highest_out_connection(valid_connections);
+							selected_connection = sorted_connections.front();
 							break;
 						case 2: // Connection with lowest connections
-							selected_connection = select_lowest_out_connection(valid_connections);
+							sorted_connections = select_lowest_out_connection(valid_connections);
+							selected_connection = sorted_connections.front();
 							break;
 						case 3: // Connection with highest execution
-							selected_connection = select_longest_connection(valid_connections);
+							sorted_connections = select_longest_connection(valid_connections);
+							selected_connection = sorted_connections.front();
 							break;
 						case 4: // Connection with lowest execution
-							selected_connection = select_shortest_connection(valid_connections);
+							sorted_connections = select_shortest_connection(valid_connections);
+							selected_connection = sorted_connections.front();
 							break;
 						default:
-							selected_connection = select_first_connection(valid_connections); // Default link if no match
+							sorted_connections = select_first_connection(valid_connections); // Default link if no match
+							selected_connection = sorted_connections.front();
 							break;
 					}
 					result_link.push_back(selected_connection);
-					link_valid_connections.push_back(valid_connections);
+					link_valid_connections.push_back(sorted_connections);
 				}
 				DF_link output = {result_link,link_valid_connections};
 				return output;
@@ -1453,63 +1462,64 @@ namespace NP {
 						break;
 					}
 					
+					std::vector<std::size_t> sorted_connections;
 					size_t selected_connection;
 					switch (heuristic_index)
 					{
 						case 1: // Connection with highest connections
-							selected_connection = select_highest_out_connection(valid_connections);
+							sorted_connections = select_highest_out_connection(valid_connections);
+							selected_connection = sorted_connections.front();
 							break;
 						case 2: // Connection with lowest connections
-							selected_connection = select_lowest_out_connection(valid_connections);
+							sorted_connections = select_lowest_out_connection(valid_connections);
+							selected_connection = sorted_connections.front();
 							break;
 						case 3: // Connection with highest execution
-							selected_connection = select_longest_connection(valid_connections);
+							sorted_connections = select_longest_connection(valid_connections);
+							selected_connection = sorted_connections.front();
 							break;
 						case 4: // Connection with lowest execution
-							selected_connection = select_shortest_connection(valid_connections);
+							sorted_connections = select_shortest_connection(valid_connections);
+							selected_connection = sorted_connections.front();
 							break;
 						default:
-							selected_connection = select_first_connection(valid_connections); // Default link if no match
+							sorted_connections = select_first_connection(valid_connections); // Default link if no match
+							selected_connection = sorted_connections.front();
 							break;
 					}
 					result_link.push_back(selected_connection);
-					link_valid_connections.push_back(valid_connections);
+					link_valid_connections.push_back(sorted_connections);
 				}
 				DF_link output = {result_link,link_valid_connections};
 				return output;
 			}
 
-			std::size_t select_first_connection(std::vector<std::size_t> possible_connections)
+			std::vector<std::size_t> select_first_connection(std::vector<std::size_t> possible_connections)
 			{
-				std::size_t result;
-				result = possible_connections.front();
+				std::vector<std::size_t> result = possible_connections;
 				return result;
 			}
 
-			std::size_t select_highest_out_connection(std::vector<std::size_t> possible_connections)
+			std::vector<std::size_t> select_highest_out_connection(std::vector<std::size_t> possible_connections)
 			{
-				std::size_t result;
-				result = possible_connections.front();
+				std::vector<std::size_t> result = possible_connections;
 				return result;
 			}
 
-			std::size_t select_lowest_out_connection(std::vector<std::size_t> possible_connections)
+			std::vector<std::size_t> select_lowest_out_connection(std::vector<std::size_t> possible_connections)
 			{
-				std::size_t result;
-				result = possible_connections.front();
+				std::vector<std::size_t> result = possible_connections;
 				return result;
 			}
 
-			std::size_t select_longest_connection(std::vector<std::size_t> possible_connections)
+			std::vector<std::size_t> select_longest_connection(std::vector<std::size_t> possible_connections)
 			{
-				std::size_t result;
-				result = possible_connections.front();
+				std::vector<std::size_t> result = possible_connections;
 				return result;
 			}
-			std::size_t select_shortest_connection(std::vector<std::size_t> possible_connections)
+			std::vector<std::size_t> select_shortest_connection(std::vector<std::size_t> possible_connections)
 			{
-				std::size_t result;
-				result = possible_connections.front();
+				std::vector<std::size_t> result = possible_connections;
 				return result;
 			}
 
