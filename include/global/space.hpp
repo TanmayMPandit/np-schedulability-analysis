@@ -93,6 +93,7 @@ namespace NP {
 					ultimate.add_relevant_job(s.get_deadline_miss_job()); // Add deadline miss job as relevant jobs
 					bool energy_aware_possible = true;
 					size_t branching_heuristic = 0; 
+					bool search_based = true;
 					//  Make causal link array with vector for each job
 					while (energy_aware_possible)
 					{
@@ -109,12 +110,21 @@ namespace NP {
 						//  Initialize best solution setting storage 
 						
 						energy_aware_possible = false;
+						
 						//////////////////////////////////DF with distribution/////////////////////////////////////////
 						// Put this in a for loop with counter set to threshold
 						DF_link causal_link_result =  ultimate.get_df_causal_link(branching_heuristic); // first connection heuristic
 						// Get speed scaling result
-						// speed_scaling_result distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
-						speed_scaling_result distribution_result = s.directional_search(causal_link_result.link,prob,opts);
+						speed_scaling_result distribution_result;
+						if(search_based) 
+						{
+							distribution_result = s.directional_search(causal_link_result.link,prob,opts);
+						}
+						else
+						{	
+							distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
+						}
+						// 
 						//  if speed scaling result is positive  then upadte scaling result
 						// If not, backtrack and keep on checking until all links are explored
 						std::vector<std::vector<size_t>> previously_considered_links;
@@ -149,7 +159,7 @@ namespace NP {
 								causal_link_result.valid_connections.back().erase(causal_link_result.valid_connections.back().begin());
 								causal_link_result = ultimate.explore_df_causal_link(causal_link_result,branching_heuristic);
 								explored_link +=1;
-								if(explored_link >= 200) 
+								if(explored_link >= 100) 
 								{
 									// std::cout << "Explore limit reached" <<std::endl;
 									break;
@@ -162,8 +172,15 @@ namespace NP {
 								{
 									continue;
 								}
-								// distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
-								distribution_result = s.directional_search(causal_link_result.link,prob,opts);
+								if(search_based) 
+								{
+									distribution_result = s.directional_search(causal_link_result.link,prob,opts);
+								}
+								else
+								{	
+									distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
+								}
+								// distribution_result = s.directional_search(causal_link_result.link,prob,opts);
 								if (!distribution_result.solution_found) previously_considered_links.push_back(sorted_bt_list);
 							}
 							// std::cout << "Num of explored links :" << explored_link <<std::endl;
@@ -585,7 +602,7 @@ namespace NP {
 
 			speed_scaling_result set_all_connected_to_highest(std::vector<size_t> all_jobs, const Problem& prob, const Analysis_options& opts)
 			{
-				std::cout << "Setting all to highest" << std::endl;
+				// std::cout << "Setting all sto highest" << std::endl;
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
@@ -895,7 +912,7 @@ namespace NP {
 				Workload jobset_for_speed = jobs; 
 				std::deque<State> temp_state = get_scaling_state(link);
 				bool not_feasible = true;
-				int search_threshold = 10;
+				int search_threshold = 100;
 				int spaces_searched = 0;
 				while (not_feasible)
 				{
@@ -965,7 +982,7 @@ namespace NP {
 				for (size_t index : link) jobset[index].update_speed_space(highest_speed);
 				std::deque<State> temp_state = get_scaling_state(link);
 				bool not_feasible = true;
-				int search_threshold = 10;
+				int search_threshold = 100;
 				int spaces_searched = 0;
 				while (not_feasible)
 				{
@@ -1039,7 +1056,7 @@ namespace NP {
 				for (size_t index : link) jobset[index].update_speed_space(highest_speed);
 				std::deque<State> temp_state = get_scaling_state(link);
 				bool not_feasible = true;
-				int search_threshold = 10;
+				int search_threshold = 100;
 				int spaces_searched = 0;
 				while (not_feasible)
 				{
