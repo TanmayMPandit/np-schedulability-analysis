@@ -201,7 +201,7 @@ namespace NP {
 							s.explore();
 							if(!s.is_schedulable())
 							{
-								std::cout << "\033[1;31mAnother deadline miss with updated solution.\033[0m" <<std::endl;
+								// std::cout << "\033[1;31mAnother deadline miss with updated solution.\033[0m" <<std::endl;
 								ultimate.add_relevant_job(s.get_deadline_miss_job());
 								ultimate.prepare_ultimate_reset(scaling_result);
 								energy_aware_possible = true; //Just to avoid infinite loop fpr now

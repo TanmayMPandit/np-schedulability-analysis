@@ -3,7 +3,9 @@
 #SBATCH --job-name="test util_2.4"
 #SBATCH --partition=compute
 #SBATCH --time=00:30:00
-#SBATCH --ntasks=100   
+#SBATCH --ntasks=25
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=2G
 #SBATCH --account=education-eemcs-msc-es
 
 # Define the multiplied utilization values
@@ -20,7 +22,7 @@ for util in "${utils[@]}"; do
     jobset_file="100-jitter/${util_formatted}/jobsets/jobset-log-uniform-discrete_${jobset_index}.csv"
 
     # Execute the command
-    srun build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" $
+    srun build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" &
   done
 done
 wait
