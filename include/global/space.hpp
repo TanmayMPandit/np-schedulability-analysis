@@ -94,6 +94,7 @@ namespace NP {
 					bool energy_aware_possible = true;
 					size_t branching_heuristic = 0; 
 					bool search_based = true;
+					int explored_link_threshold = 100;
 					//  Make causal link array with vector for each job
 					while (energy_aware_possible)
 					{
@@ -159,7 +160,7 @@ namespace NP {
 								causal_link_result.valid_connections.back().erase(causal_link_result.valid_connections.back().begin());
 								causal_link_result = ultimate.explore_df_causal_link(causal_link_result,branching_heuristic);
 								explored_link +=1;
-								if(explored_link >= 100) 
+								if(explored_link >= explored_link_threshold) 
 								{
 									// std::cout << "Explore limit reached" <<std::endl;
 									break;
@@ -602,7 +603,7 @@ namespace NP {
 
 			speed_scaling_result set_all_connected_to_highest(std::vector<size_t> all_jobs, const Problem& prob, const Analysis_options& opts)
 			{
-				// std::cout << "Setting all sto highest" << std::endl;
+				std::cout << "Setting all to highest" << std::endl;
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
@@ -840,11 +841,15 @@ namespace NP {
 				std::vector<size_t> energy_efficient_link = link;
 				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
 				std::vector<std::vector<float>> energy_efficient_speed;
+				// std::cout << "Exploring link : " ;
+				// for (size_t j : link) std::cout << j << ">";
+				// std::cout <<std::endl;
 				for (NP::Job<Time> j:jobs)
 				{
 					energy_efficient_speed.push_back(j.get_speed_space());
 				}
 				double positive_lateness = get_slack(link.front());
+				// std::cout  << "Positive lateness: " << positive_lateness <<std::endl;
 				double negative_lateness;
 				std::vector<float> highest_speed = {1.0};
 				Workload high_jobset = jobs;
@@ -860,6 +865,7 @@ namespace NP {
 				if (scaling_space.is_schedulable())
 				{
 					negative_lateness = scaling_space.get_slack(link.front());
+					// std::cout  << "Negative lateness: " << negative_lateness <<std::endl;
 					if (positive_lateness < negative_lateness)
 					{
 						// std::cout << "Low to high search" <<std::endl;
@@ -919,7 +925,7 @@ namespace NP {
 					spaces_searched ++;
 					if (spaces_searched > search_threshold) break; 
 					int current_changing_job = get_scaling_job_index(link,jobset);
-					// std::cout << "Changing job index "<< current_changing_job << std::endl; 
+					// std::cout << "Changing job "<< link[current_changing_job] << std::endl; 
 					if (current_changing_job == -1)
 					{
 						// No job left to change
@@ -930,6 +936,7 @@ namespace NP {
 						// Remove lowest speed and for all index before set to initial available speed
 						std::vector<float> speed = jobset[link[current_changing_job]].get_speed_space();
 						speed.erase(speed.begin());
+						// std::cout << "Setting job "<< link[current_changing_job] << "to " << speed.front() << std::endl; 
 						jobset[link[current_changing_job]].update_speed_space(speed);
 						for (int i = 0; i < current_changing_job; i++)
 						{
@@ -974,6 +981,7 @@ namespace NP {
 				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
 				for (NP::Job<Time> j:jobs)
 				{
+					// std::cout << "Job "<< j.get_id() << " has lowest speed of " <<  j.get_speed_space().front() <<std::endl;
 					energy_efficient_speed.push_back(j.get_speed_space());
 				}
 				Workload jobset = jobs;
@@ -989,7 +997,7 @@ namespace NP {
 					spaces_searched ++;
 					if (spaces_searched > search_threshold) break; 
 					int current_changing_job = get_high_to_low_scaling_job_index(link,jobset,jobset_for_speed);
-					// std::cout << "Changing job index "<< current_changing_job << std::endl; 
+					// std::cout << "Changing job "<< link[current_changing_job] << std::endl; 
 					if (current_changing_job == -1)
 					{
 						// No job left to change
@@ -1000,9 +1008,11 @@ namespace NP {
 						// Remove lowest speed and for all index before set to initial available speed
 						std::vector<float> available_speeds = jobset_for_speed[link[current_changing_job]].get_speed_space(); // get original speed
 						std::vector<float> current_speeds = jobset[link[current_changing_job]].get_speed_space(); // get current speed
-						int speeds_to_remove = available_speeds.size()-current_speeds.size();
+						int speeds_to_remove = available_speeds.size()-current_speeds.size()-1;
 						for (int k = 0 ; k < speeds_to_remove;k++) available_speeds.erase(available_speeds.begin());
+
 						jobset[link[current_changing_job]].update_speed_space(available_speeds);
+						// std::cout << "Setting job "<< link[current_changing_job] << "to " << available_speeds.front() << std::endl; 
 						for (int i = 0; i < current_changing_job; i++)
 						{
 							//  For each job before to highest speed
@@ -1034,6 +1044,15 @@ namespace NP {
 					}
 					else{
 						break;
+					}
+				}
+				if(!speed_scaling_solution_exist) 
+				{
+					speed_scaling_solution_exist = true;
+					energy_efficient_link = link;
+					for (size_t job : link)
+					{
+						energy_efficient_speed[job] = highest_speed;
 					}
 				}
 				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
@@ -1074,7 +1093,7 @@ namespace NP {
 						// Remove lowest speed and for all index before set to initial available speed
 						std::vector<float> available_speeds = jobset_for_speed[link[current_changing_job]].get_speed_space(); // get original speed
 						std::vector<float> current_speeds = jobset[link[current_changing_job]].get_speed_space(); // get current speed
-						int speeds_to_remove = available_speeds.size()-current_speeds.size();
+						int speeds_to_remove = available_speeds.size()-current_speeds.size()-1;
 						for (int k = 0 ; k < speeds_to_remove;k++) available_speeds.erase(available_speeds.begin());
 						jobset[link[current_changing_job]].update_speed_space(available_speeds);
 						for (int i = 0; i < current_changing_job; i++)
