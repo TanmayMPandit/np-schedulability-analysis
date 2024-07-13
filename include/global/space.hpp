@@ -92,9 +92,18 @@ namespace NP {
 					ultimate.set_ultimate_space(); // Define search space as ultimate space
 					ultimate.add_relevant_job(s.get_deadline_miss_job()); // Add deadline miss job as relevant jobs
 					bool energy_aware_possible = true;
-					size_t branching_heuristic = 0; 
-					bool search_based = true;
-					int explored_link_threshold = 100;
+					size_t branching_heuristic = opts.link_branching_heuristic; 
+					bool search_based = opts.search_based;
+					int explored_link_threshold = opts.explored_link_threshold; 
+					// if (search_based){
+					// 	std::cout << "Search-based selected" <<std::endl;}
+					// else{
+					// 	std::cout << "lateness-based selected" <<std::endl;
+					// }
+					// std::cout << "Explored link threshold is " << explored_link_threshold <<std::endl;
+					// std::cout << "Branching heuristic is " << branching_heuristic <<std::endl;
+					// std::cout << "Search space limit is " << opts.search_space_threshold <<std::endl;
+
 					//  Make causal link array with vector for each job
 					while (energy_aware_possible)
 					{
@@ -918,7 +927,7 @@ namespace NP {
 				Workload jobset_for_speed = jobs; 
 				std::deque<State> temp_state = get_scaling_state(link);
 				bool not_feasible = true;
-				int search_threshold = 100;
+				int search_threshold = opts.search_space_threshold;
 				int spaces_searched = 0;
 				while (not_feasible)
 				{
@@ -990,7 +999,7 @@ namespace NP {
 				for (size_t index : link) jobset[index].update_speed_space(highest_speed);
 				std::deque<State> temp_state = get_scaling_state(link);
 				bool not_feasible = true;
-				int search_threshold = 100;
+				int search_threshold = opts.search_space_threshold;
 				int spaces_searched = 0;
 				while (not_feasible)
 				{
@@ -1075,7 +1084,7 @@ namespace NP {
 				for (size_t index : link) jobset[index].update_speed_space(highest_speed);
 				std::deque<State> temp_state = get_scaling_state(link);
 				bool not_feasible = true;
-				int search_threshold = 100;
+				int search_threshold = opts.search_space_threshold;
 				int spaces_searched = 0;
 				while (not_feasible)
 				{

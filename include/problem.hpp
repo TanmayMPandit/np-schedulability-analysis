@@ -88,6 +88,16 @@ namespace NP {
 
 		bool multi_speed;
 
+		bool search_based;
+
+		int explored_link_threshold;
+
+		int link_branching_heuristic;
+
+		int search_space_threshold; 
+
+		double energy_aware_timeout; // Seconds after which all jobs from causally connected jobs and all unscheduled job will be set to highest
+
 		Analysis_options()
 		: timeout(0)
 		, max_depth(0)
@@ -95,6 +105,11 @@ namespace NP {
 		, num_buckets(1000)
 		, be_naive(false)
 		, multi_speed(false)
+		, search_based(false)
+		, explored_link_threshold(100)
+		, link_branching_heuristic(0)
+		, search_space_threshold(100)
+		, energy_aware_timeout(0)
 		{
 		}
 	};

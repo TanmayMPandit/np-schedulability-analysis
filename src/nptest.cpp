@@ -44,6 +44,17 @@ static bool want_multiprocessor = false;
 static unsigned int num_processors = 1;
 
 static bool want_dvfs = false;
+
+bool search_based;
+
+int explored_link_threshold;
+
+int link_branching_heuristic;
+
+int search_space_threshold; 
+
+double energy_aware_timeout;
+
 static std::string dvfs;
 static std::vector<float> valid_speed;
 
@@ -146,6 +157,11 @@ static Analysis_result analyze(
 	opts.num_buckets = problem.jobs.size();
 	opts.be_naive = want_naive;
 	opts.multi_speed = (valid_speed.size() > 1);
+	opts.energy_aware_timeout = energy_aware_timeout;
+	opts.explored_link_threshold = explored_link_threshold;
+	opts.link_branching_heuristic = link_branching_heuristic;
+	opts.search_based =  search_based;
+	opts.search_space_threshold = search_space_threshold;
 	
 
 	// Actually call the analysis engine
@@ -433,6 +449,27 @@ int main(int argc, char** argv)
 	      .help("set the discrete frequency supported by the DVFS on platform. e.g. \"0.5,0.8,1.0\"")
 	      .set_default("{1}");
 
+	parser.add_option("--search-based").dest("search_based_exploration").set_default("0")
+	      .action("store_const").set_const("1")
+	      .help("Speed assignment exploration based search (Default set to lateness distribution)");
+
+	parser.add_option("-b", "--branching-heuristic").dest("link_branching")
+		.help("Select heursistic for link branching 0: first connection 1:high-out 2:low-out 3:longest-job 4:shrtest-job")
+		.set_default("0");
+
+	parser.add_option("--link_threshold").dest("link_threshold")
+		.help("Define number of links explored")
+		.set_default("100");
+	
+	parser.add_option("--search_threshold").dest("search_threshold")
+		.help("Define number of search setting")
+		.set_default("100");
+
+	parser.add_option("--energy-timeout").dest("energy_timeout")
+		.help("Energy-aware scaling timeout. Time in seconds after whichh all unceratin speeds assignments are set to highest speed")
+		.set_default("0");
+	
+
 
 	auto options = parser.parse_args(argc, argv);
 
@@ -520,6 +557,19 @@ int main(int argc, char** argv)
 			return 4;
 		}
 	}
+
+	search_based = options.get("search_based_exploration");
+
+	explored_link_threshold = options.get("link_threshold");
+
+	link_branching_heuristic = options.get("link_branching");
+
+	search_space_threshold = options.get("search_threshold");
+
+	energy_aware_timeout = options.get("energy_timeout");
+
+
+
 	
 	// for (float  speed: valid_speed) std::cout << speed << ' ';
 	// std::cout<<std::endl;
