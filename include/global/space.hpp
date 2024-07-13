@@ -114,6 +114,7 @@ namespace NP {
 						DF_link causal_link_result =  ultimate.get_df_causal_link(branching_heuristic); // first connection heuristic
 						// Get speed scaling result
 						speed_scaling_result distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
+						// speed_scaling_result distribution_result = s.set_one_to_highest(causal_link_result.link,prob,opts);
 						//  if speed scaling result is positive  then upadte scaling result
 						// If not, backtrack and keep on checking until all links are explored
 						std::vector<std::vector<size_t>> previously_considered_links;
@@ -148,11 +149,12 @@ namespace NP {
 								causal_link_result.valid_connections.back().erase(causal_link_result.valid_connections.back().begin());
 								causal_link_result = ultimate.explore_df_causal_link(causal_link_result,branching_heuristic);
 								explored_link +=1;
-								if(explored_link >= 100) 
+								if(explored_link >= 200) 
 								{
 									// std::cout << "Explore limit reached" <<std::endl;
 									break;
 								}
+								// std::cout << explored_link%10 << "0 links explored" <<std::endl;
 								std::vector<size_t> sorted_bt_list = causal_link_result.link;
 								std::sort(sorted_bt_list.begin(), sorted_bt_list.end());
 								auto it = std::find(previously_considered_links.begin(), previously_considered_links.end(), sorted_bt_list);
@@ -161,8 +163,10 @@ namespace NP {
 									continue;
 								}
 								distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
+								// distribution_result = s.set_one_to_highest(causal_link_result.link,prob,opts);
 								if (!distribution_result.solution_found) previously_considered_links.push_back(sorted_bt_list);
 							}
+							// std::cout << "Num of explored links :" << explored_link <<std::endl;
 						}
 						
 						speed_scaling_result scaling_result;
@@ -197,7 +201,7 @@ namespace NP {
 							s.explore();
 							if(!s.is_schedulable())
 							{
-								// std::cout << "\033[1;31mAnother deadline miss with updated solution.\033[0m" <<std::endl;
+								std::cout << "\033[1;31mAnother deadline miss with updated solution.\033[0m" <<std::endl;
 								ultimate.add_relevant_job(s.get_deadline_miss_job());
 								ultimate.prepare_ultimate_reset(scaling_result);
 								energy_aware_possible = true; //Just to avoid infinite loop fpr now
@@ -507,6 +511,45 @@ namespace NP {
 					link_left -= 1;
 					std::cout << "link left: " << link_left << std::endl;
 				}
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				return result;
+
+			}
+			speed_scaling_result set_one_to_highest(std::vector<size_t> link, const Problem& prob, const Analysis_options& opts)
+			{
+				bool speed_scaling_solution_exist = false;
+				std::vector<size_t> energy_efficient_link;
+				std::vector<std::vector<float>> energy_efficient_speed;
+				float energy_efficient_consumption = std::numeric_limits<float>::infinity(); // intialize this with existing speed space
+				for (NP::Job<Time> j:jobs)
+				{
+					energy_efficient_speed.push_back(j.get_speed_space());
+				}
+				Workload jobset = jobs;
+				std::vector<float> highest_speed = {1.0};
+				
+				for (size_t j:link)
+				{ 
+					jobset[j].update_speed_space(highest_speed);
+				}
+				std::deque<State> temp_state = get_scaling_state(link);
+				auto scaling_space = State_space(jobset, prob.dag, prob.num_processors, opts.timeout,
+									opts.max_depth, opts.num_buckets);
+				scaling_space.set_explore_space(temp_state); // Define exploration space as ultimate space
+				for (size_t job : link) scaling_space.add_relevant_job(job);
+				scaling_space.set_energy_upper_threshold(energy_efficient_consumption);
+				scaling_space.explore();
+				if (scaling_space.is_schedulable())
+				{
+					float energy_consumption = scaling_space.get_space_energy_consumption();
+					energy_efficient_link = link;
+					for (size_t job : link)
+					{
+						energy_efficient_speed[job] = jobset[job].get_speed_space();
+					}
+					speed_scaling_solution_exist = true;
+				}
+				
 				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
 				return result;
 
