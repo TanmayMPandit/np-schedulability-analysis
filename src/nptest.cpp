@@ -51,6 +51,8 @@ static unsigned int max_depth = 0;
 
 static bool want_rta_file;
 
+static bool is_necessary;
+
 static bool continue_after_dl_miss = false;
 
 #ifdef CONFIG_PARALLEL
@@ -82,6 +84,15 @@ static Analysis_result analyze(
 	// Parse precedence constraints
 	typename NP::Precedence_constraints edges = is_yaml ? NP::parse_yaml_dag_file(in) : NP::parse_dag_file(dag_in);
 
+	if(is_necessary)
+	{
+		for (NP::Job<Time>& job: jobs)
+		{
+			job.set_to_nec();
+		}
+
+	}
+	
 	NP::Scheduling_problem<Time> problem{
         jobs,
 		edges,
@@ -95,6 +106,8 @@ static Analysis_result analyze(
 	opts.early_exit = !continue_after_dl_miss;
 	opts.num_buckets = problem.jobs.size();
 	opts.be_naive = want_naive;
+
+
 
 	// Actually call the analysis engine
 	auto space = Space::explore(problem, opts);
@@ -349,6 +362,13 @@ int main(int argc, char** argv)
 	      .help("do not abort the analysis on the first deadline miss "
 	            "(default: off)");
 
+	parser.add_option("-w", "--necessary")
+	      .dest("is_nec").set_default("0")
+	      .action("store_const").set_const("1")
+	      .help("Set the test as necessary test. "
+	            "(default: off)");
+
+
 
 	auto options = parser.parse_args(argc, argv);
 
@@ -358,6 +378,8 @@ int main(int argc, char** argv)
 	const std::string& iip = options.get("iip");
 	want_prm_iip = iip == "P-RM";
 	want_cw_iip = iip == "CW";
+
+	is_necessary = options.get("is_nec");
 
 	want_naive = options.get("naive");
 

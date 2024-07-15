@@ -118,6 +118,11 @@ namespace NP {
 			return deadline;
 		}
 
+		void set_to_nec()
+		{
+			cost = Interval<Time>(cost.upto(),cost.upto());
+			arrival = Interval<Time>(arrival.from(),arrival.from());
+		}
 		bool exceeds_deadline(Time t) const
 		{
 			return t > deadline
