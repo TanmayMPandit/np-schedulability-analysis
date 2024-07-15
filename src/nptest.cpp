@@ -642,7 +642,7 @@ int main(int argc, char** argv)
 	}
 
 
-	expected_util = options.get("input_util");
+	util_str = (const std::string&) options.get("input_util");
 
 	
     switch (analysis_type) {
@@ -659,10 +659,6 @@ int main(int argc, char** argv)
             std::cerr << "Invalid analysis type" << std::endl;
     }
 
-    // Format expected_util to 2 decimal places
-    std::ostringstream oss;
-    oss << std::fixed << std::setprecision(2) << expected_util;
-    util_str = oss.str();
 
 	explored_link_threshold = options.get("link_threshold");
 
