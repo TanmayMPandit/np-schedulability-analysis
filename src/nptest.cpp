@@ -64,7 +64,7 @@ std::string util_str;
 static std::string output_file;
 static std::string  file_name ;
 
-namespace fs = std::filesystem;
+// namespace fs = std::filesystem;
 
 static std::string dvfs;
 static std::vector<float> valid_speed;
@@ -206,13 +206,13 @@ static Analysis_result analyze(
 	//////////////////Generate YAML///////////////////////////////////
 	std::string path = output_file + "/" + subdirectory + "/" + util_str;
 
-	if (!(fs::exists(path) && fs::is_directory(path))) {
-        try {
-            fs::create_directory(path);
-        } catch (const std::exception& ex) {
-            std::cerr << "Error creating directory: " << ex.what() << std::endl;
-        }
-    }
+	// if (!(fs::exists(path) && fs::is_directory(path))) {
+    //     try {
+    //         fs::create_directory(path);
+    //     } catch (const std::exception& ex) {
+    //         std::cerr << "Error creating directory: " << ex.what() << std::endl;
+    //     }
+    // }
 	size_t lastSlash = file_name.find_last_of("/\\");
     std::string filename = (lastSlash != std::string::npos) ? file_name.substr(lastSlash + 1) : file_name;
     std::string yaml_filename = path + "/" + filename.substr(0, filename.find_last_of('.'))+".yaml";
