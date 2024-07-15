@@ -33,7 +33,6 @@ namespace NP {
 		template<class Time> class State_space
 		{
 			public:
-
 			typedef Scheduling_problem<Time> Problem;
 			// typedef typename NP::Job<Time>::SolverJobInput SolverJobInput;
 			// typedef typename LinkSolver::SolverResult SolverResult;
@@ -66,13 +65,16 @@ namespace NP {
 				auto s = State_space(dynamic_problem.jobs, prob.dag, prob.num_processors, opts.timeout,
 				                     opts.max_depth, opts.num_buckets);
 				s.be_naive = opts.be_naive;
+
 				s.cpu_time.start();
 				s.explore();
+				
 				
 				
 #ifdef CONFIG_DVFS
 				if(!s.is_schedulable() && opts.multi_speed)
 				{
+					s.set_ea_timeout(opts.energy_aware_timeout);
 
 					// std::cout << "Deadline miss noticed. Energy aware scheduling initialized." << std::endl;
 					// std::cout << "Deadline miss job index is "<< s.get_deadline_miss_job() << std::endl;
@@ -118,14 +120,16 @@ namespace NP {
 						// std::cout << "Causal link size is " << causal_links.size() << std::endl;
 						
 						//  Initialize best solution setting storage 
-						
+						// if (s.check_energy_aware_timeout()) break;
 						energy_aware_possible = false;
-						
+						speed_scaling_result distribution_result;
+						distribution_result.solution_found = false;
+						if (!s.check_energy_aware_timeout())
+						{
 						//////////////////////////////////DF with distribution/////////////////////////////////////////
 						// Put this in a for loop with counter set to threshold
 						DF_link causal_link_result =  ultimate.get_df_causal_link(branching_heuristic); // first connection heuristic
 						// Get speed scaling result
-						speed_scaling_result distribution_result;
 						if(search_based) 
 						{
 							distribution_result = s.directional_search(causal_link_result.link,prob,opts);
@@ -140,6 +144,7 @@ namespace NP {
 						std::vector<std::vector<size_t>> previously_considered_links;
 						if(!distribution_result.solution_found)
 						{
+
 							// std::cout << "Causal link is not useful. Creating another " << std::endl;
 							std::vector<size_t> sorted_list = causal_link_result.link;
 							std::sort(sorted_list.begin(), sorted_list.end()); 
@@ -147,6 +152,7 @@ namespace NP {
 							size_t explored_link = 1;
 							while(!distribution_result.solution_found)
 							{
+								if (s.check_energy_aware_timeout()) break;
 								causal_link_result.link.pop_back();
 								int num_of_removed = causal_link_result.valid_connections.size();
 								for(int i = causal_link_result.valid_connections.size()-1 ; i >= 0; i--)
@@ -195,6 +201,7 @@ namespace NP {
 							}
 							// std::cout << "Num of explored links :" << explored_link <<std::endl;
 						}
+						}
 						
 						speed_scaling_result scaling_result;
 						scaling_result = distribution_result;
@@ -234,12 +241,13 @@ namespace NP {
 								energy_aware_possible = true; //Just to avoid infinite loop fpr now
 							}
 							else{
-								// std::cout << "\033[1;32mEnergy aware speed setting found : \033[0m"  ;
-								// for (std::vector<float> efficient_speed : scaling_result.energy_efficient_speed)
-								// {
-								// 	std::cout << efficient_speed.front() << ", ";
-								// }
-								// std::cout<<std::endl;
+								std::cout << "\033[1;32mEnergy aware speed setting found : \033[0m"  ;
+								for (std::vector<float> efficient_speed : scaling_result.energy_efficient_speed)
+								{
+									std::cout << efficient_speed.front() << ", ";
+								}
+								std::cout<<std::endl;
+								if (s.did_energy_aware_timeout()) std::cout << "Timeout due to energy aware timeout" <<std::endl;
 								std::cout << "\033[1;32mEnergy consumption : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
 								energy_aware_possible = false;
 							}
@@ -612,7 +620,7 @@ namespace NP {
 
 			speed_scaling_result set_all_connected_to_highest(std::vector<size_t> all_jobs, const Problem& prob, const Analysis_options& opts)
 			{
-				std::cout << "Setting all to highest" << std::endl;
+				// std::cout << "Setting all to highest" << std::endl;
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed; // intialize this with existing speed space
@@ -2306,6 +2314,8 @@ namespace NP {
 			std::vector<std::size_t> relevant_jobs = std::vector<std::size_t>();
 			std::vector<bool> complete_connections;
 			std::vector<std::vector<std::size_t>> causal_connections;
+			bool energy_aware_timeout = false;
+			double ea_time = 0; 
 
 			const unsigned int max_depth;
 
@@ -2713,6 +2723,26 @@ namespace NP {
 					aborted = true;
 					timed_out = true;
 				}
+			}
+
+			bool check_energy_aware_timeout()
+			{
+				if (ea_time && get_cpu_time() > ea_time) {
+					energy_aware_timeout = true;
+					// std::cout << "Energy aware timeout. Threshold: " << ea_time << " and current time " << get_cpu_time() << std::endl;
+					return true;
+				}
+				return false;
+			}
+
+			bool did_energy_aware_timeout()
+			{
+				return energy_aware_timeout;
+			}
+
+			void set_ea_timeout(double timeout)
+			{
+				ea_time = timeout;
 			}
 
 			void check_depth_abort()
