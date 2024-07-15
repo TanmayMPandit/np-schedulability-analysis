@@ -120,10 +120,7 @@ namespace NP {
 						// std::cout << "Causal link size is " << causal_links.size() << std::endl;
 						speed_scaling_result distribution_result;
 						distribution_result.solution_found = false;
-						speed_scaling_result all_to_high = s.set_all_connected_to_highest(all_connected,prob,opts);
-						if (all_to_high.solution_found)
-						{
-							energy_aware_possible = false;
+						energy_aware_possible = false;
 						if (!s.check_energy_aware_timeout())
 							{
 							//////////////////////////////////DF with distribution/////////////////////////////////////////
@@ -203,7 +200,7 @@ namespace NP {
 							}
 							}
 
-						}
+						
 						//  Initialize best solution setting storage 
 						// if (s.check_energy_aware_timeout()) break;
 						
@@ -212,7 +209,7 @@ namespace NP {
 						scaling_result = distribution_result;
 						if(!scaling_result.solution_found)
 						{
-							scaling_result = all_to_high;
+							scaling_result =  s.set_all_connected_to_highest(all_connected,prob,opts);
 							// std::cout << "All connected jobs :"  ;
 							// for (size_t job : all_connected) std::cout << job << ",";
 							// std::cout << std::endl;
@@ -2161,6 +2158,11 @@ namespace NP {
 				return !aborted;
 			}
 
+			bool did_energy_aware_timeout()
+			{
+				return energy_aware_timeout;
+			}
+
 			bool was_timed_out() const
 			{
 				return timed_out;
@@ -2738,11 +2740,6 @@ namespace NP {
 					return true;
 				}
 				return false;
-			}
-
-			bool did_energy_aware_timeout()
-			{
-				return energy_aware_timeout;
 			}
 
 			void set_ea_timeout(double timeout)

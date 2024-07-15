@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <filesystem>
 #include <algorithm>
 
 #ifndef _WIN32
@@ -24,6 +25,7 @@
 #include "global/space.hpp"
 #include "io.hpp"
 #include "clock.hpp"
+#include <iomanip>
 
 
 #define MAX_PROCESSORS 512
@@ -54,6 +56,15 @@ int link_branching_heuristic;
 int search_space_threshold; 
 
 double energy_aware_timeout;
+
+int analysis_type = -1;
+std::string subdirectory;
+double expected_util;
+std::string util_str;
+static std::string output_file;
+static std::string  file_name ;
+
+namespace fs = std::filesystem;
 
 static std::string dvfs;
 static std::vector<float> valid_speed;
@@ -192,6 +203,51 @@ static Analysis_result analyze(
 		}
 	}
 
+	//////////////////Generate YAML///////////////////////////////////
+	std::string path = output_file + "/" + subdirectory + "/" + util_str;
+
+	if (!(fs::exists(path) && fs::is_directory(path))) {
+        try {
+            fs::create_directory(path);
+        } catch (const std::exception& ex) {
+            std::cerr << "Error creating directory: " << ex.what() << std::endl;
+        }
+    }
+	size_t lastSlash = file_name.find_last_of("/\\");
+    std::string filename = (lastSlash != std::string::npos) ? file_name.substr(lastSlash + 1) : file_name;
+    std::string yaml_filename = path + "/" + filename.substr(0, filename.find_last_of('.'))+".yaml";
+	
+
+	YAML::Node yaml_node;
+    yaml_node["schedulability"] = space.is_schedulable();  // Example boolean value
+    yaml_node["Energy_consumption"] = space.get_space_energy_consumption();  // Example double value
+    yaml_node["time"] = space.get_cpu_time();  // Example double value
+    yaml_node["energy-aware timeout"] = space.did_energy_aware_timeout();  // Example boolean value
+
+    // Assign vector of floats (valid_speeds) to YAML node
+    YAML::Node valid_speeds_node;
+    for (float speed : valid_speed) {
+        valid_speeds_node.push_back(speed);
+    }
+    yaml_node["valid_speed"] = valid_speeds_node;
+
+    // Write YAML to file
+    try {
+        // Write YAML file
+        std::ofstream fout(yaml_filename,std::ios::out);
+        fout << yaml_node;
+        fout.close();
+
+        // std::cout << "Successfully wrote YAML to: " << yaml_filename << std::endl;
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error writing YAML: " << e.what() << std::endl;
+    }
+
+
+
+	////////////////////////////////////////////////////////////////// 
+
 	return {
 		space.is_schedulable(),
 		space.was_timed_out(),
@@ -233,7 +289,7 @@ static void process_file(const std::string& fname)
 {
 	try {
 		Analysis_result result;
-
+		file_name = fname;
 		auto empty_dag_stream = std::istringstream("\n");
 		auto empty_aborts_stream = std::istringstream("\n");
 		auto dag_stream = std::ifstream();
@@ -468,6 +524,14 @@ int main(int argc, char** argv)
 	parser.add_option("--energy-timeout").dest("energy_timeout")
 		.help("Energy-aware scaling timeout. Time in seconds after whichh all unceratin speeds assignments are set to highest speed")
 		.set_default("0");
+
+	parser.add_option("-o", "--out").dest("out_yaml")
+	      .help("Relative path for output directory")
+	      .set_default("");
+	
+	parser.add_option("-u", "--util").dest("input_util")
+	      .help("Utilization of the jobset")
+	      .set_default("");
 	
 
 
@@ -558,7 +622,47 @@ int main(int argc, char** argv)
 		}
 	}
 
+	output_file = (const std::string&) options.get("out_yaml");
+
 	search_based = options.get("search_based_exploration");
+
+	if(valid_speed.size() > 1)
+	{
+		if(search_based){
+			analysis_type = 2;
+		}
+		else{
+			analysis_type = 1;
+		}
+
+	}
+	else
+	{
+		analysis_type = 0;
+	}
+
+
+	expected_util = options.get("input_util");
+
+	
+    switch (analysis_type) {
+        case 0:
+            subdirectory = "single-speed";
+            break;
+        case 1:
+            subdirectory = "distribution-based";
+            break;
+        case 2:
+            subdirectory = "search-based";
+            break;
+        default:
+            std::cerr << "Invalid analysis type" << std::endl;
+    }
+
+    // Format expected_util to 2 decimal places
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2) << expected_util;
+    util_str = oss.str();
 
 	explored_link_threshold = options.get("link_threshold");
 

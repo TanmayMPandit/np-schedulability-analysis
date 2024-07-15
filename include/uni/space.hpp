@@ -102,6 +102,16 @@ namespace NP {
 				return num_edges;
 			}
 
+			double get_space_energy_consumption()
+			{
+				return 0;
+			}
+
+			bool did_energy_aware_timeout()
+			{
+				return false;
+			}
+
 			unsigned long max_exploration_front_width() const
 			{
 				return width;
@@ -775,6 +785,7 @@ namespace NP {
 				   << std::endl);
 				process_new_edge(s, next, j, next.finish_range());
 			}
+
 
 			void explore_naively()
 			{
