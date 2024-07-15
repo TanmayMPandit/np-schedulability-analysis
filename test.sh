@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the array of util values
-utils=(0.40)
+utils=(0.40 0.80 1.20 1.60 2.00 2.40 2.80)
 
 # Define the base directory for the files
 base_dir="exp_1/rand-fixed-sum-utilDist/log-uniform-discrete-perDist/4-core/6-task/100-jitter"
