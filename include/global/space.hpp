@@ -118,96 +118,101 @@ namespace NP {
 						// std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
 						std::vector<size_t> all_connected = ultimate.get_all_connected_jobs();
 						// std::cout << "Causal link size is " << causal_links.size() << std::endl;
-						
-						//  Initialize best solution setting storage 
-						// if (s.check_energy_aware_timeout()) break;
-						energy_aware_possible = false;
 						speed_scaling_result distribution_result;
 						distribution_result.solution_found = false;
+						speed_scaling_result all_to_high = s.set_all_connected_to_highest(all_connected,prob,opts);
+						if (all_to_high.solution_found)
+						{
+							energy_aware_possible = false;
 						if (!s.check_energy_aware_timeout())
-						{
-						//////////////////////////////////DF with distribution/////////////////////////////////////////
-						// Put this in a for loop with counter set to threshold
-						DF_link causal_link_result =  ultimate.get_df_causal_link(branching_heuristic); // first connection heuristic
-						// Get speed scaling result
-						if(search_based) 
-						{
-							distribution_result = s.directional_search(causal_link_result.link,prob,opts);
-						}
-						else
-						{	
-							distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
-						}
-						// 
-						//  if speed scaling result is positive  then upadte scaling result
-						// If not, backtrack and keep on checking until all links are explored
-						std::vector<std::vector<size_t>> previously_considered_links;
-						if(!distribution_result.solution_found)
-						{
-
-							// std::cout << "Causal link is not useful. Creating another " << std::endl;
-							std::vector<size_t> sorted_list = causal_link_result.link;
-							std::sort(sorted_list.begin(), sorted_list.end()); 
-							previously_considered_links.push_back(sorted_list);
-							size_t explored_link = 1;
-							while(!distribution_result.solution_found)
 							{
-								if (s.check_energy_aware_timeout()) break;
-								causal_link_result.link.pop_back();
-								int num_of_removed = causal_link_result.valid_connections.size();
-								for(int i = causal_link_result.valid_connections.size()-1 ; i >= 0; i--)
+							//////////////////////////////////DF with distribution/////////////////////////////////////////
+							// Put this in a for loop with counter set to threshold
+							DF_link causal_link_result =  ultimate.get_df_causal_link(branching_heuristic); // first connection heuristic
+							// Get speed scaling result
+							if(search_based) 
+							{
+								distribution_result = s.directional_search(causal_link_result.link,prob,opts);
+							}
+							else
+							{	
+								distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
+							}
+							// 
+							//  if speed scaling result is positive  then upadte scaling result
+							// If not, backtrack and keep on checking until all links are explored
+							std::vector<std::vector<size_t>> previously_considered_links;
+							if(!distribution_result.solution_found)
+							{
+
+								// std::cout << "Causal link is not useful. Creating another " << std::endl;
+								std::vector<size_t> sorted_list = causal_link_result.link;
+								std::sort(sorted_list.begin(), sorted_list.end()); 
+								previously_considered_links.push_back(sorted_list);
+								size_t explored_link = 1;
+								while(!distribution_result.solution_found)
 								{
-									if (causal_link_result.valid_connections[i].size() > 1)
+									if (s.check_energy_aware_timeout()) break;
+									causal_link_result.link.pop_back();
+									int num_of_removed = causal_link_result.valid_connections.size();
+									for(int i = causal_link_result.valid_connections.size()-1 ; i >= 0; i--)
 									{
-										num_of_removed = causal_link_result.valid_connections.size()-1-i;
+										if (causal_link_result.valid_connections[i].size() > 1)
+										{
+											num_of_removed = causal_link_result.valid_connections.size()-1-i;
+											break;
+										}
+									}
+									if(num_of_removed == causal_link_result.valid_connections.size())
+									{
 										break;
 									}
+									for (int i = 0 ; i < num_of_removed ; i ++)
+									{
+										causal_link_result.link.pop_back();
+										causal_link_result.valid_connections.pop_back();
+									}
+									causal_link_result.valid_connections.back().erase(causal_link_result.valid_connections.back().begin());
+									causal_link_result = ultimate.explore_df_causal_link(causal_link_result,branching_heuristic);
+									explored_link +=1;
+									if(explored_link >= explored_link_threshold) 
+									{
+										// std::cout << "Explore limit reached" <<std::endl;
+										break;
+									}
+									// std::cout << explored_link%10 << "0 links explored" <<std::endl;
+									std::vector<size_t> sorted_bt_list = causal_link_result.link;
+									std::sort(sorted_bt_list.begin(), sorted_bt_list.end());
+									auto it = std::find(previously_considered_links.begin(), previously_considered_links.end(), sorted_bt_list);
+									if (it != previously_considered_links.end()) 
+									{
+										continue;
+									}
+									if(search_based) 
+									{
+										distribution_result = s.directional_search(causal_link_result.link,prob,opts);
+									}
+									else
+									{	
+										distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
+									}
+									// distribution_result = s.directional_search(causal_link_result.link,prob,opts);
+									if (!distribution_result.solution_found) previously_considered_links.push_back(sorted_bt_list);
 								}
-								if(num_of_removed == causal_link_result.valid_connections.size())
-								{
-									break;
-								}
-								for (int i = 0 ; i < num_of_removed ; i ++)
-								{
-									causal_link_result.link.pop_back();
-									causal_link_result.valid_connections.pop_back();
-								}
-								causal_link_result.valid_connections.back().erase(causal_link_result.valid_connections.back().begin());
-								causal_link_result = ultimate.explore_df_causal_link(causal_link_result,branching_heuristic);
-								explored_link +=1;
-								if(explored_link >= explored_link_threshold) 
-								{
-									// std::cout << "Explore limit reached" <<std::endl;
-									break;
-								}
-								// std::cout << explored_link%10 << "0 links explored" <<std::endl;
-								std::vector<size_t> sorted_bt_list = causal_link_result.link;
-								std::sort(sorted_bt_list.begin(), sorted_bt_list.end());
-								auto it = std::find(previously_considered_links.begin(), previously_considered_links.end(), sorted_bt_list);
-								if (it != previously_considered_links.end()) 
-								{
-									continue;
-								}
-								if(search_based) 
-								{
-									distribution_result = s.directional_search(causal_link_result.link,prob,opts);
-								}
-								else
-								{	
-									distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
-								}
-								// distribution_result = s.directional_search(causal_link_result.link,prob,opts);
-								if (!distribution_result.solution_found) previously_considered_links.push_back(sorted_bt_list);
+								// std::cout << "Num of explored links :" << explored_link <<std::endl;
 							}
-							// std::cout << "Num of explored links :" << explored_link <<std::endl;
+							}
+
 						}
-						}
+						//  Initialize best solution setting storage 
+						// if (s.check_energy_aware_timeout()) break;
+						
 						
 						speed_scaling_result scaling_result;
 						scaling_result = distribution_result;
 						if(!scaling_result.solution_found)
 						{
-							scaling_result = s.set_all_connected_to_highest(all_connected,prob,opts);
+							scaling_result = all_to_high;
 							// std::cout << "All connected jobs :"  ;
 							// for (size_t job : all_connected) std::cout << job << ",";
 							// std::cout << std::endl;
