@@ -92,6 +92,7 @@ namespace NP {
 										opts.max_depth, opts.num_buckets);
 
 					ultimate.set_ultimate_space(); // Define search space as ultimate space
+					ultimate.clear_relevant_job();
 					ultimate.add_relevant_job(s.get_deadline_miss_job()); // Add deadline miss job as relevant jobs
 					bool energy_aware_possible = true;
 					size_t branching_heuristic = opts.link_branching_heuristic; 
@@ -238,6 +239,7 @@ namespace NP {
 							if(!s.is_schedulable())
 							{
 								// std::cout << "\033[1;31mAnother deadline miss with updated solution.\033[0m" <<std::endl;
+								ultimate.clear_relevant_job();
 								ultimate.add_relevant_job(s.get_deadline_miss_job());
 								ultimate.prepare_ultimate_reset(scaling_result);
 								energy_aware_possible = true; //Just to avoid infinite loop fpr now
@@ -2212,6 +2214,11 @@ namespace NP {
 				relevant_jobs.push_back(job);
 			}
 
+			void clear_relevant_job()
+			{
+				relevant_jobs.clear();
+			}
+
 			typedef std::deque<State> States;
 
 #ifdef CONFIG_PARALLEL
@@ -2519,9 +2526,20 @@ namespace NP {
 				update_finish_times(r, index_of(j), range);
 				if (j.exceeds_deadline(range.upto())){
 					deadline_miss_job = index_of(j);
-					if(!is_ultimate_graph || is_explore_graph){
-						// std::cout << "Job " << j.get_id() << " missed the deadline" << std::endl; 
-						aborted = true;
+					if(!is_ultimate_graph || is_explore_graph){ 
+						if(is_explore_graph)
+						{
+						auto it = std::find(relevant_jobs.begin(),relevant_jobs.end(), deadline_miss_job);
+						if (it != relevant_jobs.end()) 
+						{
+							aborted = true;
+						}
+						}
+						else
+						{
+							// std::cout << "Job " << j.get_id() << " missed the deadline" << std::endl;
+							aborted = true;
+						}
 					}
 				}
 					
@@ -3053,10 +3071,10 @@ namespace NP {
 						bool all_jobs_present = true;
 						for (State& state : exploration_front) // In all of the states
 						{
-							for (std::size_t index : relevant_jobs) // If all of the relevant jobs are present
-							{
-								all_jobs_present &= !state.job_incomplete(index);
-							}
+							// for (std::size_t index : relevant_jobs) // If all of the relevant jobs are present
+							// {
+								all_jobs_present &= !state.job_incomplete(relevant_jobs.front());
+							// }
 						}
 						if (all_jobs_present)
 						{
