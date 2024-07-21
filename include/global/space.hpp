@@ -1592,8 +1592,8 @@ namespace NP {
 				const NP::Job<Time> job_x = jobs[x];
 				bool arrival_time_overlap = !((job_x.latest_arrival() <= job_j.earliest_arrival())|| (job_j.latest_arrival() <= job_x.earliest_arrival()));
 				bool connected = !disjoint && (arrival_time_overlap 
-				|| (!arrival_time_overlap && (job_x.get_priority()<job_j.get_priority()))
-				|| ((x_st.first < job_j.latest_arrival()) && (job_x.get_priority() > job_j.get_priority())));
+				|| (!arrival_time_overlap && (job_x.higher_priority_than(job_j)))
+				|| ((x_st.first < job_j.latest_arrival()) && (!job_x.higher_priority_than(job_j))));
 				return connected;
 			}
 
