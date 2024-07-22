@@ -223,13 +223,13 @@ static Analysis_result analyze(
     yaml_node["Energy_consumption"] = space.get_space_energy_consumption();  // Example double value
     yaml_node["time"] = space.get_cpu_time();  // Example double value
     yaml_node["energy-aware timeout"] = space.did_energy_aware_timeout();  // Example boolean value
-
-    // Assign vector of floats (valid_speeds) to YAML node
-    YAML::Node valid_speeds_node;
-    for (float speed : valid_speed) {
-        valid_speeds_node.push_back(speed);
+	yaml_node["valid_speed"] = dvfs;
+	YAML::Node selected_speed_node;
+    for (float speed : space.get_speeds()) {
+		// std::cout <<"Reached here" << std::endl;
+        selected_speed_node.push_back((std::ostringstream() << std::fixed << std::setprecision(2) << speed).str());
     }
-    yaml_node["valid_speed"] = valid_speeds_node;
+    yaml_node["selected_speed"] = selected_speed_node;
 
     // Write YAML to file
     try {

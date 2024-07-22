@@ -251,6 +251,7 @@ namespace NP {
 								// 	std::cout << efficient_speed.front() << ", ";
 								// }
 								// std::cout<<std::endl;
+								s.get_selected_speed();
 								if (s.did_energy_aware_timeout()) std::cout << "Timeout due to energy aware timeout" <<std::endl;
 								std::cout << "\033[1;32mEnergy consumption : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
 								energy_aware_possible = false;
@@ -272,6 +273,7 @@ namespace NP {
 				{
 					if(s.is_schedulable()) 
 					{
+						s.get_selected_speed();
 						std::cout << "\033[1;32mEnergy consumption at lowest feasible speed : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
 					}
 					else
@@ -2160,6 +2162,22 @@ namespace NP {
 				return !aborted;
 			}
 
+			void get_selected_speed()
+			{
+				for ( Job<Time> j : jobs) 
+				{
+					output_speeds.push_back(j.get_speed_space().front());
+				}
+				// std::cout << " jobs : " << jobs.size() << " and  output "<< output_speeds.size()<<std::endl;
+				
+			}
+
+			std::vector<float> get_speeds()
+			{
+				return output_speeds;
+			}
+
+
 			bool did_energy_aware_timeout()
 			{
 				return energy_aware_timeout;
@@ -2325,6 +2343,7 @@ namespace NP {
 			bool is_explore_graph = false;
 			bool reiterate = false;
 			float Upper_energy_threshold;
+			std::vector<float> output_speeds = std::vector<float>();
 			std::vector<std::size_t> relevant_jobs = std::vector<std::size_t>();
 			std::vector<bool> complete_connections;
 			std::vector<std::vector<std::size_t>> causal_connections;

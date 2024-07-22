@@ -92,6 +92,12 @@ namespace NP {
 				return timed_out;
 			}
 
+			std::vector<float> get_speeds()
+			{
+				std::vector<float> result;
+				return result;
+			}
+
 			unsigned long number_of_states() const
 			{
 				return num_states;
