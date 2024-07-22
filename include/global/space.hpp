@@ -251,6 +251,7 @@ namespace NP {
 								// 	std::cout << efficient_speed.front() << ", ";
 								// }
 								// std::cout<<std::endl;
+								s.cpu_time.stop();
 								s.get_selected_speed();
 								if (s.did_energy_aware_timeout()) std::cout << "Timeout due to energy aware timeout" <<std::endl;
 								std::cout << "\033[1;32mEnergy consumption : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
@@ -264,6 +265,7 @@ namespace NP {
 						}
 						else
 						{
+							s.cpu_time.stop();
 							std::cout  << " Can't solve this " << std::endl ;
 							// Cant solve, so return that unschedulable and return some type of result
 						}
@@ -273,17 +275,19 @@ namespace NP {
 				{
 					if(s.is_schedulable()) 
 					{
+						s.cpu_time.stop();
 						s.get_selected_speed();
 						std::cout << "\033[1;32mEnergy consumption at lowest feasible speed : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
 					}
 					else
 					{
+						s.cpu_time.stop();
 						std::cout  << " Can't solve this " << std::endl ;
 					}
 				}
 #endif
 				// std::cout << s;
-				s.cpu_time.stop();
+				
 				return s;
 
 			}
