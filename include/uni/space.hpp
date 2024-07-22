@@ -87,6 +87,11 @@ namespace NP {
 				return !aborted && !observed_deadline_miss;
 			}
 
+			bool did_speed_scale()
+			{
+				return false;
+			}
+
 			bool was_timed_out() const
 			{
 				return timed_out;

@@ -252,6 +252,7 @@ namespace NP {
 								// }
 								// std::cout<<std::endl;
 								s.cpu_time.stop();
+								s.set_scaled();
 								s.get_selected_speed();
 								if (s.did_energy_aware_timeout()) std::cout << "Timeout due to energy aware timeout" <<std::endl;
 								std::cout << "\033[1;32mEnergy consumption : \033[0m"  << s.get_space_energy_consumption() <<std::endl ;
@@ -2166,6 +2167,11 @@ namespace NP {
 				return !aborted;
 			}
 
+			void set_scaled() 
+			{
+				speed_scaled = true;
+			}
+
 			void get_selected_speed()
 			{
 				for ( Job<Time> j : jobs) 
@@ -2185,6 +2191,11 @@ namespace NP {
 			bool did_energy_aware_timeout()
 			{
 				return energy_aware_timeout;
+			}
+			
+			bool did_speed_scale()
+			{
+				return speed_scaled;
 			}
 
 			bool was_timed_out() const
@@ -2352,6 +2363,7 @@ namespace NP {
 			std::vector<bool> complete_connections;
 			std::vector<std::vector<std::size_t>> causal_connections;
 			bool energy_aware_timeout = false;
+			bool speed_scaled = false;
 			double ea_time = 0; 
 
 			const unsigned int max_depth;
