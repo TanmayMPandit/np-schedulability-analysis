@@ -240,7 +240,9 @@ static Analysis_result analyze(
 
     for (float speed : space.get_speeds()) {
 		// std::cout <<"Reached here" << std::endl;
-        selected_speed_node.push_back((std::ostringstream() << std::fixed << std::setprecision(2) << speed).str());
+		std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << speed;
+        selected_speed_node.push_back(oss.str());
     }
     yaml_node["selected_speed"] = selected_speed_node;
 
