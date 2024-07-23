@@ -228,6 +228,7 @@ static Analysis_result analyze(
     yaml_node["energy-aware timeout"] = space.did_energy_aware_timeout();  // Example boolean value
 	yaml_node["valid_speed"] = dvfs;
 	yaml_node["speed_scaling_required"] = space.did_speed_scale(); 
+	yaml_node["num_of_deadline_miss"] = space.get_num_dm(); 
 	YAML::Node selected_speed_node;
 	YAML::Node benchmark_node;
 	benchmark_node["preprocessing"] = (double) preprocessing;

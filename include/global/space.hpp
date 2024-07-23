@@ -121,6 +121,7 @@ namespace NP {
 					//  Make causal link array with vector for each job
 					while (energy_aware_possible)
 					{
+						s.num_deadline_miss++;
 						s.ultimate_sag.start();
 						ultimate.explore();
 						s.ultimate_sag.stop();
@@ -2200,6 +2201,11 @@ namespace NP {
 				return !aborted;
 			}
 
+			int get_num_dm()
+			{
+				return num_deadline_miss;
+			}
+
 			void set_scaled() 
 			{
 				speed_scaled = true;
@@ -2395,6 +2401,7 @@ namespace NP {
 			std::size_t deadline_miss_job = 0;
 			bool is_ultimate_graph = false;
 			bool is_explore_graph = false;
+			int num_deadline_miss = 0;
 			bool reiterate = false;
 			float Upper_energy_threshold;
 			std::vector<float> output_speeds = std::vector<float>();

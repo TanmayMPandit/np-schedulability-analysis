@@ -132,6 +132,11 @@ namespace NP {
 				return 0;
 			}
 
+			int get_num_dm()
+			{
+				return 0;
+			}
+
 			bool did_energy_aware_timeout()
 			{
 				return false;
