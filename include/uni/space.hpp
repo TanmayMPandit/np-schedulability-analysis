@@ -92,6 +92,20 @@ namespace NP {
 				return false;
 			}
 
+			struct  time_result
+			{
+				double main_sag;
+				double ultimate_sag;
+				double causal_connection;
+				double exploration_sag;
+			};
+
+			time_result get_benchmark()
+			{
+				time_result result;
+				return result;
+			}
+
 			bool was_timed_out() const
 			{
 				return timed_out;

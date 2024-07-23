@@ -44,6 +44,7 @@ static std::string aborts_file;
 
 static bool want_multiprocessor = false;
 static unsigned int num_processors = 1;
+static Processor_clock preprocessing;
 
 static bool want_dvfs = false;
 
@@ -110,6 +111,7 @@ static Analysis_result analyze(
 	typename NP::Precedence_constraints edges = is_yaml ? NP::parse_yaml_dag_file(in) : NP::parse_dag_file(dag_in);
 	
 	if(want_dvfs){
+		preprocessing.start();
 		// std::cout << "Preprocessing" << std::endl;
 		for (NP::Job<Time>& job: jobs){
 			std::vector<float> temp_speed;
@@ -152,6 +154,7 @@ static Analysis_result analyze(
 			}
 			job.update_speed_space(temp_speed);
 		}
+		preprocessing.stop();
 	}
 
 	NP::Scheduling_problem<Time> problem{
@@ -226,6 +229,15 @@ static Analysis_result analyze(
 	yaml_node["valid_speed"] = dvfs;
 	yaml_node["speed_scaling_required"] = space.did_speed_scale(); 
 	YAML::Node selected_speed_node;
+	YAML::Node benchmark_node;
+	benchmark_node["preprocessing"] = (double) preprocessing;
+	auto bench = space.get_benchmark();
+	benchmark_node["main_sag"] =  bench.main_sag;
+	benchmark_node["ultimate_sag"] =  bench.ultimate_sag;
+	benchmark_node["causal_connection"] =  bench.causal_connection;
+	benchmark_node["exploration_sag"] =  bench.exploration_sag;
+	yaml_node["benchmark"] = benchmark_node;
+
     for (float speed : space.get_speeds()) {
 		// std::cout <<"Reached here" << std::endl;
         selected_speed_node.push_back((std::ostringstream() << std::fixed << std::setprecision(2) << speed).str());

@@ -45,6 +45,14 @@ namespace NP {
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed;
 			};
+
+			struct  time_result
+			{
+				double main_sag;
+				double ultimate_sag;
+				double causal_connection;
+				double exploration_sag;
+			};
 			
 			struct  broken_link_result
 			{
@@ -67,8 +75,9 @@ namespace NP {
 				s.be_naive = opts.be_naive;
 
 				s.cpu_time.start();
+				s.main_sag.start();
 				s.explore();
-				
+				s.main_sag.stop();
 				
 				
 #ifdef CONFIG_DVFS
@@ -78,6 +87,7 @@ namespace NP {
 
 					// std::cout << "Deadline miss noticed. Energy aware scheduling initialized." << std::endl;
 					// std::cout << "Deadline miss job index is "<< s.get_deadline_miss_job() << std::endl;
+					s.ultimate_sag.start();
 					Problem ultimate_problem = prob;
 					for (NP::Job<Time>& job: ultimate_problem.jobs)
 					{
@@ -94,6 +104,7 @@ namespace NP {
 					ultimate.set_ultimate_space(); // Define search space as ultimate space
 					ultimate.clear_relevant_job();
 					ultimate.add_relevant_job(s.get_deadline_miss_job()); // Add deadline miss job as relevant jobs
+					s.ultimate_sag.stop();
 					bool energy_aware_possible = true;
 					size_t branching_heuristic = opts.link_branching_heuristic; 
 					bool search_based = opts.search_based;
@@ -110,14 +121,18 @@ namespace NP {
 					//  Make causal link array with vector for each job
 					while (energy_aware_possible)
 					{
+						s.ultimate_sag.start();
 						ultimate.explore();
+						s.ultimate_sag.stop();
 						// std::cout << "All relevant jobs are present in the ultimate graph" << std::endl;
 						// Update causal link for each job noticed till now (I not already in their) 
+						s.causal_connection.start();
 						ultimate.update_causal_connections();
 							// std::cout << "Deadline miss job is " << ultimate.relevant_jobs.back()<< std::endl;
 						//  For deadline miss job create a set of causal link -> FUNCTION: get set of causal link for given job
 						// std::vector<std::vector<size_t>> causal_links = ultimate.get_causal_links();
 						std::vector<size_t> all_connected = ultimate.get_all_connected_jobs();
+						s.causal_connection.stop();
 						// std::cout << "Causal link size is " << causal_links.size() << std::endl;
 						speed_scaling_result distribution_result;
 						distribution_result.solution_found = false;
@@ -126,8 +141,11 @@ namespace NP {
 							{
 							//////////////////////////////////DF with distribution/////////////////////////////////////////
 							// Put this in a for loop with counter set to threshold
+							s.causal_connection.start();
 							DF_link causal_link_result =  ultimate.get_df_causal_link(branching_heuristic); // first connection heuristic
+							s.causal_connection.stop();
 							// Get speed scaling result
+							s.exploration_sag.start();
 							if(search_based) 
 							{
 								distribution_result = s.directional_search(causal_link_result.link,prob,opts);
@@ -136,6 +154,7 @@ namespace NP {
 							{	
 								distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
 							}
+							s.exploration_sag.stop();
 							// 
 							//  if speed scaling result is positive  then upadte scaling result
 							// If not, backtrack and keep on checking until all links are explored
@@ -144,13 +163,16 @@ namespace NP {
 							{
 
 								// std::cout << "Causal link is not useful. Creating another " << std::endl;
+								s.causal_connection.start();
 								std::vector<size_t> sorted_list = causal_link_result.link;
 								std::sort(sorted_list.begin(), sorted_list.end()); 
 								previously_considered_links.push_back(sorted_list);
+								s.causal_connection.stop();
 								size_t explored_link = 1;
 								while(!distribution_result.solution_found)
 								{
 									if (s.check_energy_aware_timeout()) break;
+									s.causal_connection.start();
 									causal_link_result.link.pop_back();
 									int num_of_removed = causal_link_result.valid_connections.size();
 									for(int i = causal_link_result.valid_connections.size()-1 ; i >= 0; i--)
@@ -163,6 +185,7 @@ namespace NP {
 									}
 									if(num_of_removed == causal_link_result.valid_connections.size())
 									{
+										s.causal_connection.stop();
 										break;
 									}
 									for (int i = 0 ; i < num_of_removed ; i ++)
@@ -176,6 +199,7 @@ namespace NP {
 									if(explored_link >= explored_link_threshold) 
 									{
 										// std::cout << "Explore limit reached" <<std::endl;
+										s.causal_connection.stop();
 										break;
 									}
 									// std::cout << explored_link%10 << "0 links explored" <<std::endl;
@@ -184,8 +208,11 @@ namespace NP {
 									auto it = std::find(previously_considered_links.begin(), previously_considered_links.end(), sorted_bt_list);
 									if (it != previously_considered_links.end()) 
 									{
+										s.causal_connection.stop();
 										continue;
 									}
+									s.causal_connection.stop();
+									s.exploration_sag.start();
 									if(search_based) 
 									{
 										distribution_result = s.directional_search(causal_link_result.link,prob,opts);
@@ -194,6 +221,7 @@ namespace NP {
 									{	
 										distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
 									}
+									s.exploration_sag.stop();
 									// distribution_result = s.directional_search(causal_link_result.link,prob,opts);
 									if (!distribution_result.solution_found) previously_considered_links.push_back(sorted_bt_list);
 								}
@@ -210,7 +238,9 @@ namespace NP {
 						scaling_result = distribution_result;
 						if(!scaling_result.solution_found)
 						{
+							s.exploration_sag.start();
 							scaling_result =  s.set_all_connected_to_highest(all_connected,prob,opts);
+							s.exploration_sag.stop();
 							// std::cout << "All connected jobs :"  ;
 							// for (size_t job : all_connected) std::cout << job << ",";
 							// std::cout << std::endl;
@@ -233,15 +263,18 @@ namespace NP {
 						{
 							// std::cout << "\033[1;32mEnergy aware scaling solution found. \033[0m" <<std::endl;
 							//  Somehow update S, speed, exploration time and graph
-							
+							s.main_sag.start();
 							s.prepare_reset(scaling_result);
 							s.explore();
+							s.main_sag.stop();
 							if(!s.is_schedulable())
 							{
 								// std::cout << "\033[1;31mAnother deadline miss with updated solution.\033[0m" <<std::endl;
+								s.ultimate_sag.start();
 								ultimate.clear_relevant_job();
 								ultimate.add_relevant_job(s.get_deadline_miss_job());
 								ultimate.prepare_ultimate_reset(scaling_result);
+								s.ultimate_sag.stop();
 								energy_aware_possible = true; //Just to avoid infinite loop fpr now
 							}
 							else{
@@ -2223,6 +2256,12 @@ namespace NP {
 				return cpu_time;
 			}
 
+			time_result get_benchmark()
+			{
+				time_result result = {main_sag,ultimate_sag,causal_connection,exploration_sag};
+				return result;
+			}
+
 			std::size_t get_deadline_miss_job() const
 			{
 				return deadline_miss_job;
@@ -2398,6 +2437,10 @@ namespace NP {
 			tbb::enumerable_thread_specific<unsigned long> edge_counter;
 #endif
 			Processor_clock cpu_time;
+			Processor_clock main_sag;
+			Processor_clock ultimate_sag;
+			Processor_clock causal_connection;
+			Processor_clock exploration_sag;
 			const double timeout;
 
 			const unsigned int num_cpus;
