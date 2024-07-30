@@ -196,13 +196,7 @@ namespace NP {
 									}
 									causal_link_result.valid_connections.back().erase(causal_link_result.valid_connections.back().begin());
 									causal_link_result = ultimate.explore_df_causal_link(causal_link_result,branching_heuristic);
-									explored_link +=1;
-									if(explored_link >= explored_link_threshold) 
-									{
-										// std::cout << "Explore limit reached" <<std::endl;
-										s.causal_connection.stop();
-										break;
-									}
+									
 									// std::cout << explored_link%10 << "0 links explored" <<std::endl;
 									std::vector<size_t> sorted_bt_list = causal_link_result.link;
 									std::sort(sorted_bt_list.begin(), sorted_bt_list.end());
@@ -211,6 +205,13 @@ namespace NP {
 									{
 										s.causal_connection.stop();
 										continue;
+									}
+									explored_link +=1;
+									if(explored_link >= explored_link_threshold) 
+									{
+										// std::cout << "Explore limit reached" <<std::endl;
+										s.causal_connection.stop();
+										break;
 									}
 									s.causal_connection.stop();
 									s.exploration_sag.start();
