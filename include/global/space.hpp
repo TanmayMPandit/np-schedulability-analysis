@@ -1625,16 +1625,14 @@ namespace NP {
 				std::pair<Time, Time> x_ft = rta[x];
 				// std::cout << "Job " << x << " has finish time "<< x_ft.first << " - "<< x_ft.second << std::endl;
 				bool disjoint;
-				//  Might need to change due to approach for interval intersection
 				disjoint = (x_ft.second <= j_st.first)|| (j_st.second <= x_ft.first);
 				// Working condition:  st and ft overlap and (either arrival time overlap or (no arrival time overlap with  x has higher priority than j) )
 				//  Single element overlap is not considered as at single element overlap, scheduling decisions are clear
 				const NP::Job<Time> job_j = jobs[j];
 				const NP::Job<Time> job_x = jobs[x];
-				bool arrival_time_overlap = !((job_x.latest_arrival() <= job_j.earliest_arrival())|| (job_j.latest_arrival() <= job_x.earliest_arrival()));
-				bool connected = !disjoint && (arrival_time_overlap 
-				|| (!arrival_time_overlap && (job_x.higher_priority_than(job_j)))
-				|| ((x_st.first < job_j.latest_arrival()) && (!job_x.higher_priority_than(job_j))));
+				// bool arrival_time_overlap = !((job_x.latest_arrival() <= job_j.earliest_arrival())|| (job_j.latest_arrival() <= job_x.earliest_arrival()));
+				bool connected = !disjoint && (job_x.higher_priority_than(job_j)
+				|| ((x_st.first < job_j.latest_arrival()) && !job_x.higher_priority_than(job_j)));
 				return connected;
 			}
 
