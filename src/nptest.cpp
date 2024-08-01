@@ -56,6 +56,8 @@ int link_branching_heuristic;
 
 int search_space_threshold; 
 
+int k_threshold; 
+
 double energy_aware_timeout;
 
 int analysis_type = -1;
@@ -176,6 +178,7 @@ static Analysis_result analyze(
 	opts.link_branching_heuristic = link_branching_heuristic;
 	opts.search_based =  search_based;
 	opts.search_space_threshold = search_space_threshold;
+	opts.k_threshold = k_threshold;
 	
 
 	// Actually call the analysis engine
@@ -549,7 +552,10 @@ int main(int argc, char** argv)
 	      .help("Utilization of the jobset")
 	      .set_default("");
 	
-
+	parser.add_option("-k", "--feasible_solution").dest("feasible_sol")
+		.help("Number of feasible solutions to check before deciding on speed readjustment")
+		.set_default("1");
+	
 
 	auto options = parser.parse_args(argc, argv);
 
@@ -684,6 +690,7 @@ int main(int argc, char** argv)
 
 	energy_aware_timeout = options.get("energy_timeout");
 
+	k_threshold = options.get("feasible_sol");
 
 
 	

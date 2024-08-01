@@ -109,6 +109,7 @@ namespace NP {
 					size_t branching_heuristic = opts.link_branching_heuristic; 
 					bool search_based = opts.search_based;
 					int explored_link_threshold = opts.explored_link_threshold; 
+					int k_threshold = opts.k_threshold; 
 					// if (search_based){
 					// 	std::cout << "Search-based selected" <<std::endl;}
 					// else{

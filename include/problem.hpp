@@ -96,6 +96,8 @@ namespace NP {
 
 		int search_space_threshold; 
 
+		int k_threshold;
+
 		double energy_aware_timeout; // Seconds after which all jobs from causally connected jobs and all unscheduled job will be set to highest
 
 		Analysis_options()
@@ -110,6 +112,7 @@ namespace NP {
 		, link_branching_heuristic(0)
 		, search_space_threshold(100)
 		, energy_aware_timeout(0)
+		, k_threshold(1)
 		{
 		}
 	};
