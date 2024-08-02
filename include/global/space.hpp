@@ -137,12 +137,16 @@ namespace NP {
 						s.causal_connection.stop();
 						// std::cout << "Causal link size is " << causal_links.size() << std::endl;
 						speed_scaling_result distribution_result;
+						speed_scaling_result best_result;
 						distribution_result.solution_found = false;
+						best_result.solution_found = false;
+						// SET DISTRIBUTION AND BEST .ENERGY TO INF
 						energy_aware_possible = false;
 						if (!s.check_energy_aware_timeout())
 							{
 							//////////////////////////////////DF with distribution/////////////////////////////////////////
 							// Put this in a for loop with counter set to threshold
+							int feasible_solution = 0;
 							s.causal_connection.start();
 							DF_link causal_link_result =  ultimate.get_df_causal_link(branching_heuristic); // first connection heuristic
 							s.causal_connection.stop();
@@ -161,7 +165,15 @@ namespace NP {
 							//  if speed scaling result is positive  then upadte scaling result
 							// If not, backtrack and keep on checking until all links are explored
 							std::vector<std::vector<size_t>> previously_considered_links;
-							if(!distribution_result.solution_found)
+							if(distribution_result.solution_found)
+							{
+								// std::cout << "feasible solution found at first one and k threshold " << k_threshold <<std::endl;
+								feasible_solution += 1;
+							 	best_result = distribution_result;
+								
+							} 
+
+							if(!distribution_result.solution_found || (feasible_solution < k_threshold))
 							{
 
 								// std::cout << "Causal link is not useful. Creating another " << std::endl;
@@ -171,6 +183,7 @@ namespace NP {
 								previously_considered_links.push_back(sorted_list);
 								s.causal_connection.stop();
 								size_t explored_link = 1;
+								distribution_result.solution_found = false; // reset solution to false
 								while(!distribution_result.solution_found)
 								{
 									if (s.check_energy_aware_timeout()) break;
@@ -188,6 +201,7 @@ namespace NP {
 									if(num_of_removed == causal_link_result.valid_connections.size())
 									{
 										s.causal_connection.stop();
+										// std::cout << "No more links" <<std::endl;
 										break;
 									}
 									for (int i = 0 ; i < num_of_removed ; i ++)
@@ -204,6 +218,7 @@ namespace NP {
 									auto it = std::find(previously_considered_links.begin(), previously_considered_links.end(), sorted_bt_list);
 									if (it != previously_considered_links.end()) 
 									{
+										// std::cout << "Duplicate link " <<std::endl;
 										s.causal_connection.stop();
 										continue;
 									}
@@ -227,8 +242,31 @@ namespace NP {
 									s.exploration_sag.stop();
 									// distribution_result = s.directional_search(causal_link_result.link,prob,opts);
 									if (!distribution_result.solution_found) previously_considered_links.push_back(sorted_bt_list);
+									if(distribution_result.solution_found)
+									{
+										if (best_result.solution_found)
+										{
+											// Compare energy consumption
+											// if less, then update 
+											best_result = distribution_result;
+										}
+										else
+										{
+											best_result = distribution_result;
+										}
+										// Increase feasible solution by 1
+										feasible_solution += 1;
+										// std::cout << "feasible solution found: " << feasible_solution << " and k threshold is " << k_threshold  <<std::endl;
+										if(feasible_solution < k_threshold) 
+										{
+											distribution_result.solution_found = false;
+											previously_considered_links.push_back(sorted_bt_list);
+										}
+										// check k threshold if not reached  < then set  solution found to also and push back the sorted list
+									}
 								}
 								// std::cout << "Num of explored links :" << explored_link <<std::endl;
+								// std::cout << "Num of solution explored :" << feasible_solution <<std::endl;
 							}
 							}
 
@@ -238,7 +276,7 @@ namespace NP {
 						
 						
 						speed_scaling_result scaling_result;
-						scaling_result = distribution_result;
+						scaling_result = best_result; // Assign best solution
 						if(!scaling_result.solution_found)
 						{
 							s.exploration_sag.start();
