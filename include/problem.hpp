@@ -108,7 +108,7 @@ namespace NP {
 		, be_naive(false)
 		, multi_speed(false)
 		, search_based(false)
-		, explored_link_threshold(100)
+		, explored_link_threshold(50)
 		, link_branching_heuristic(0)
 		, search_space_threshold(100)
 		, energy_aware_timeout(0)

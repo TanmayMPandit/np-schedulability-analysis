@@ -534,7 +534,7 @@ int main(int argc, char** argv)
 
 	parser.add_option("--link_threshold").dest("link_threshold")
 		.help("Define number of links explored")
-		.set_default("100");
+		.set_default("50");
 	
 	parser.add_option("--search_threshold").dest("search_threshold")
 		.help("Define number of search setting")
