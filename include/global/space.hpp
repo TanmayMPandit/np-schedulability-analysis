@@ -52,9 +52,9 @@ namespace NP {
 			{
 				size_t job_index;
 				double time;
-				int job_changed;
+				size_t job_changed;
 				int solution_type;
-				int link_explored;
+				size_t link_explored;
 				int no_of_updates;
 			};
 
@@ -156,6 +156,9 @@ namespace NP {
 						best_result.type = 0;
 						distribution_result.energy_consumption = std::numeric_limits<float>::infinity();
 						distribution_result.type = 0;
+						double exploration_time = 0;
+						int solution_updated = 0;
+						size_t explored_link = 0;
 						// SET DISTRIBUTION AND BEST .ENERGY TO INF
 						energy_aware_possible = false;
 						if (!s.check_energy_aware_timeout())
@@ -176,7 +179,9 @@ namespace NP {
 							{	
 								distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
 							}
-							s.exploration_sag.stop();
+							exploration_time += s.exploration_sag.stop();
+
+							explored_link += 1;
 							// 
 							//  if speed scaling result is positive  then upadte scaling result
 							// If not, backtrack and keep on checking until all links are explored
@@ -198,7 +203,6 @@ namespace NP {
 								std::sort(sorted_list.begin(), sorted_list.end()); 
 								previously_considered_links.push_back(sorted_list);
 								s.causal_connection.stop();
-								size_t explored_link = 1;
 								distribution_result.solution_found = false; // reset solution to false
 								while(!distribution_result.solution_found)
 								{
@@ -255,7 +259,7 @@ namespace NP {
 									{	
 										distribution_result = s.speed_scale_with_distribution(causal_link_result.link,prob,opts);
 									}
-									s.exploration_sag.stop();
+									exploration_time += s.exploration_sag.stop();
 									// distribution_result = s.directional_search(causal_link_result.link,prob,opts);
 									if (!distribution_result.solution_found) previously_considered_links.push_back(sorted_bt_list);
 									if(distribution_result.solution_found)
@@ -267,6 +271,7 @@ namespace NP {
 											if(distribution_result.energy_consumption < best_result.energy_consumption)
 											{
 												// std::cout << "Better solution found" << std::endl;
+												solution_updated += 1;
 												best_result = distribution_result;
 											} 
 										}
@@ -301,7 +306,7 @@ namespace NP {
 						{
 							s.exploration_sag.start();
 							scaling_result =  s.set_all_connected_to_highest(all_connected,prob,opts);
-							s.exploration_sag.stop();
+							exploration_time += s.exploration_sag.stop();
 							// std::cout << "All connected jobs :"  ;
 							// for (size_t job : all_connected) std::cout << job << ",";
 							// std::cout << std::endl;
@@ -313,6 +318,8 @@ namespace NP {
 							// }
 
 						}
+						deadline_result deadline_solved = {s.get_deadline_miss_job(),exploration_time,scaling_result.energy_efficient_link.size(),scaling_result.type,explored_link,solution_updated};
+						s.deadline_results.push_back(deadline_solved);
 						///////////////////////////////////////////////////////////////////////////////////////////////
 
 						// speed_scaling_result scaling_result = s.speed_scale(causal_links,prob,opts);

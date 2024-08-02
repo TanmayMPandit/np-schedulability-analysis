@@ -242,6 +242,25 @@ static Analysis_result analyze(
 	benchmark_node["exploration_sag"] =  bench.exploration_sag;
 	yaml_node["benchmark"] = benchmark_node;
 
+	typedef typename NP::Global::State_space<Time>::deadline_result deadline_result;
+
+	std::vector<deadline_result> deadline_result_vector = space.get_deadline_result();
+	// std::cout << "num of deadline results " << deadline_result_vector.size() << " and no of deadline " << space.get_num_dm() << std::endl;
+	YAML::Node deadline_data;
+	for (deadline_result res : deadline_result_vector) 
+	{
+		YAML::Node d;
+		d["job"] = res.job_index;
+		d["time"] = res.time;
+		d["job_changed"] = res.job_changed;
+		d["solution_type"] = res.solution_type;
+		d["link_explored"] = res.link_explored;
+		d["no_of_updates"] = res.no_of_updates;
+		deadline_data.push_back(d);
+	}
+	yaml_node["Deadline miss data"] = deadline_data;
+
+
     for (float speed : space.get_speeds()) {
 		// std::cout <<"Reached here" << std::endl;
 		std::ostringstream oss;
@@ -250,9 +269,7 @@ static Analysis_result analyze(
     }
     yaml_node["selected_speed"] = selected_speed_node;
 	
-	typedef typename NP::Global::State_space<Time>::deadline_result deadline_result;
-
-	std::vector<deadline_result> deadline_result_vector = space.get_deadline_result();
+	
 
     // Write YAML to file
     try {
