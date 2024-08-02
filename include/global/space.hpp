@@ -48,6 +48,16 @@ namespace NP {
 				int type;
 			};
 
+			struct  deadline_result
+			{
+				size_t job_index;
+				double time;
+				int job_changed;
+				int solution_type;
+				int link_explored;
+				int no_of_updates;
+			};
+
 			struct  time_result
 			{
 				double main_sag;
@@ -2285,6 +2295,11 @@ namespace NP {
 				
 			}
 
+			std::vector<deadline_result> get_deadline_result()
+			{
+				return deadline_results;
+			}
+
 			std::vector<float> get_speeds()
 			{
 				return output_speeds;
@@ -2470,6 +2485,7 @@ namespace NP {
 			float Upper_energy_threshold;
 			std::vector<float> output_speeds = std::vector<float>();
 			std::vector<std::size_t> relevant_jobs = std::vector<std::size_t>();
+			std::vector<deadline_result> deadline_results = std::vector<deadline_result>();
 			std::vector<bool> complete_connections;
 			std::vector<std::vector<std::size_t>> causal_connections;
 			bool energy_aware_timeout = false;

@@ -249,6 +249,10 @@ static Analysis_result analyze(
         selected_speed_node.push_back(oss.str());
     }
     yaml_node["selected_speed"] = selected_speed_node;
+	
+	typedef typename NP::Global::State_space<Time>::deadline_result deadline_result;
+
+	std::vector<deadline_result> deadline_result_vector = space.get_deadline_result();
 
     // Write YAML to file
     try {

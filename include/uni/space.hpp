@@ -20,6 +20,7 @@
 #include "clock.hpp"
 
 #include "uni/state.hpp"
+#include "global/space.hpp"
 
 namespace NP {
 
@@ -30,11 +31,12 @@ namespace NP {
 		template<class Time, class IIP = Null_IIP<Time>> class State_space
 		{
 			public:
-
+			typedef typename NP::Global::State_space<Time>::deadline_result deadline_result;
 			typedef Scheduling_problem<Time> Problem;
 			typedef typename Scheduling_problem<Time>::Workload Workload;
 			typedef typename Scheduling_problem<Time>::Abort_actions Abort_actions;
 			typedef Schedule_state<Time> State;
+
 
 			static State_space explore(
 					const Problem& prob,
@@ -135,6 +137,11 @@ namespace NP {
 			int get_num_dm()
 			{
 				return 0;
+			}
+
+			std::vector<deadline_result> get_deadline_result()
+			{
+				return deadline_results;
 			}
 
 			bool did_energy_aware_timeout()
@@ -258,6 +265,8 @@ namespace NP {
 
 			Processor_clock cpu_time;
 			double timeout;
+
+			std::vector<deadline_result> deadline_results = std::vector<deadline_result>();
 
 			unsigned int max_depth;
 
