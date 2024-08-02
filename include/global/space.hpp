@@ -44,6 +44,8 @@ namespace NP {
 				bool solution_found;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed;
+				float energy_consumption;
+				int type;
 			};
 
 			struct  time_result
@@ -140,6 +142,10 @@ namespace NP {
 						speed_scaling_result best_result;
 						distribution_result.solution_found = false;
 						best_result.solution_found = false;
+						best_result.energy_consumption = std::numeric_limits<float>::infinity();
+						best_result.type = 0;
+						distribution_result.energy_consumption = std::numeric_limits<float>::infinity();
+						distribution_result.type = 0;
 						// SET DISTRIBUTION AND BEST .ENERGY TO INF
 						energy_aware_possible = false;
 						if (!s.check_energy_aware_timeout())
@@ -248,7 +254,11 @@ namespace NP {
 										{
 											// Compare energy consumption
 											// if less, then update 
-											best_result = distribution_result;
+											if(distribution_result.energy_consumption < best_result.energy_consumption)
+											{
+												// std::cout << "Better solution found" << std::endl;
+												best_result = distribution_result;
+											} 
 										}
 										else
 										{
@@ -604,6 +614,7 @@ namespace NP {
 				}
 				Workload jobset = jobs;
 				std::vector<float> highest_speed = {1.0};
+				float energy_consumption;
 				for (std::vector<size_t> link : links)
 				{
 					for (size_t j:link)
@@ -619,7 +630,7 @@ namespace NP {
 					scaling_space.explore();
 					if (scaling_space.is_schedulable())
 					{
-						float energy_consumption = scaling_space.get_space_energy_consumption();
+						energy_consumption = scaling_space.get_space_energy_consumption();
 						energy_efficient_link = link;
 						for (size_t job : link)
 						{
@@ -631,7 +642,7 @@ namespace NP {
 					link_left -= 1;
 					std::cout << "link left: " << link_left << std::endl;
 				}
-				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed,energy_consumption,0};
 				return result;
 
 			}
@@ -640,6 +651,7 @@ namespace NP {
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				std::vector<std::vector<float>> energy_efficient_speed;
+				float energy_consumption;
 				float energy_efficient_consumption = std::numeric_limits<float>::infinity(); // intialize this with existing speed space
 				for (NP::Job<Time> j:jobs)
 				{
@@ -661,7 +673,7 @@ namespace NP {
 				scaling_space.explore();
 				if (scaling_space.is_schedulable())
 				{
-					float energy_consumption = scaling_space.get_space_energy_consumption();
+					energy_consumption = scaling_space.get_space_energy_consumption();
 					energy_efficient_link = link;
 					for (size_t job : link)
 					{
@@ -670,7 +682,7 @@ namespace NP {
 					speed_scaling_solution_exist = true;
 				}
 				
-				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed,energy_consumption,0};
 				return result;
 
 			}
@@ -761,7 +773,7 @@ namespace NP {
 					// }
 				}
 				
-				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed,energy_efficient_consumption,3};
 				return result;
 
 			}
@@ -823,6 +835,8 @@ namespace NP {
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link;
 				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
+				float energy_consumption;
+				int solution_type = 0;
 				std::vector<std::vector<float>> energy_efficient_speed;
 				for (NP::Job<Time> j:jobs)
 				{
@@ -846,6 +860,8 @@ namespace NP {
 				if (scaling_space.is_schedulable())
 				{
 					// std::cout << "Feasible solution with positive lateness " << std::endl;
+					energy_consumption = scaling_space.get_space_energy_consumption();
+					solution_type = 1;
 					energy_efficient_link = link;
 					for (size_t job : link)
 					{
@@ -869,6 +885,8 @@ namespace NP {
 					scaling_space.explore();
 					if (scaling_space.is_schedulable())
 					{
+						solution_type = 2;
+						float all_high_consumption =  scaling_space.get_space_energy_consumption();
 						double negative_lateness = scaling_space.get_slack(link.front());
 						// distribute the lateness with longest job first such that total increased wcet stays under lateness 
 						lateness_distributed_speeds = distribute_negative_lateness(negative_lateness,link);
@@ -882,6 +900,7 @@ namespace NP {
 						scaling_space.explore();
 						if (scaling_space.is_schedulable())
 						{
+							energy_consumption = scaling_space.get_space_energy_consumption();
 							energy_efficient_link = link;
 							for (size_t job : link)
 							{
@@ -892,6 +911,7 @@ namespace NP {
 						}
 						else
 						{
+							energy_consumption = all_high_consumption;
 							// Check feasibility (should be feasible as this is pessimistic)
 							energy_efficient_link = link;
 							for (size_t job : link)
@@ -933,7 +953,7 @@ namespace NP {
 				}
 				
 				// Return result
-				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed,energy_consumption,solution_type};
 				return result;
 			}
 
@@ -966,6 +986,7 @@ namespace NP {
 				speed_scaling_result result;
 				if (scaling_space.is_schedulable())
 				{
+					float all_high_consumption = scaling_space.get_space_energy_consumption();
 					negative_lateness = scaling_space.get_slack(link.front());
 					// std::cout  << "Negative lateness: " << negative_lateness <<std::endl;
 					if (positive_lateness < negative_lateness)
@@ -978,6 +999,7 @@ namespace NP {
 						// std::cout << "high to low search" <<std::endl;
 						result = high_to_low_directional_search_deadline_break(link,prob,opts);
 					}
+					if(result.energy_consumption == std::numeric_limits<float>::infinity()) result.energy_consumption = all_high_consumption;
 
 				}
 				else
@@ -1011,6 +1033,7 @@ namespace NP {
 				std::vector<size_t> energy_efficient_link = link;
 				std::vector<std::vector<float>> energy_efficient_speed;
 				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
+				float energy_consumption;
 				for (NP::Job<Time> j:jobs)
 				{
 					// std::cout << "Job "<< j.get_id() << " has lowest speed of " <<  j.get_speed_space().front() <<std::endl;
@@ -1057,7 +1080,7 @@ namespace NP {
 					//  Check pruning based on causal connection 
 					if (scaling_space.is_schedulable())
 					{
-						float energy_consumption = scaling_space.get_space_energy_consumption();
+						energy_consumption = scaling_space.get_space_energy_consumption();
 						if (energy_consumption < energy_efficient_consumption)
 						{
 							energy_efficient_consumption = energy_consumption;
@@ -1071,7 +1094,7 @@ namespace NP {
 						break; // Select first feasible
 					}
 				}
-				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed,energy_consumption,1};
 				return result;
 			}
 
@@ -1081,6 +1104,7 @@ namespace NP {
 				std::vector<size_t> energy_efficient_link = link;
 				std::vector<std::vector<float>> energy_efficient_speed;
 				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
+				float energy_consumption;
 				for (NP::Job<Time> j:jobs)
 				{
 					// std::cout << "Job "<< j.get_id() << " has lowest speed of " <<  j.get_speed_space().front() <<std::endl;
@@ -1132,7 +1156,7 @@ namespace NP {
 					//  Check pruning based on causal connection 
 					if (scaling_space.is_schedulable())
 					{
-						float energy_consumption = scaling_space.get_space_energy_consumption();
+						energy_consumption = scaling_space.get_space_energy_consumption();
 						if (energy_consumption < energy_efficient_consumption)
 						{
 							energy_efficient_consumption = energy_consumption;
@@ -1150,6 +1174,7 @@ namespace NP {
 				}
 				if(!speed_scaling_solution_exist) 
 				{
+					energy_consumption = std::numeric_limits<float>::infinity();
 					speed_scaling_solution_exist = true;
 					energy_efficient_link = link;
 					for (size_t job : link)
@@ -1157,7 +1182,7 @@ namespace NP {
 						energy_efficient_speed[job] = highest_speed;
 					}
 				}
-				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed,energy_consumption,2};
 				return result;
 			}
 			speed_scaling_result high_to_low_directional_search_feasible_break(std::vector<size_t> link, const Problem& prob, const Analysis_options& opts)
@@ -1165,6 +1190,7 @@ namespace NP {
 				bool speed_scaling_solution_exist = false;
 				std::vector<size_t> energy_efficient_link = link;
 				std::vector<std::vector<float>> energy_efficient_speed;
+				float energy_consumption;
 				float energy_efficient_consumption = std::numeric_limits<float>::infinity();
 				for (NP::Job<Time> j:jobs)
 				{
@@ -1215,7 +1241,7 @@ namespace NP {
 					//  Check pruning based on causal connection 
 					if (scaling_space.is_schedulable())
 					{
-						float energy_consumption = scaling_space.get_space_energy_consumption();
+						energy_consumption = scaling_space.get_space_energy_consumption();
 						if (energy_consumption < energy_efficient_consumption)
 						{
 							energy_efficient_consumption = energy_consumption;
@@ -1229,7 +1255,7 @@ namespace NP {
 						break; 
 					}
 				}
-				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed,energy_consumption,2};
 				return result;
 			}
 
@@ -1465,7 +1491,7 @@ namespace NP {
 						
 				}
 				//  Necessary refactor: make a reconfigurable space for speed scaling exploration. such that we can set start space each time and change job execution times 
-				leave : speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed};
+				leave : speed_scaling_result result = {speed_scaling_solution_exist,energy_efficient_link,energy_efficient_speed,energy_efficient_speed,0};
 				return result;
 			}
 
