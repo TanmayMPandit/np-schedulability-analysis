@@ -230,6 +230,7 @@ static Analysis_result analyze(
     yaml_node["time"] = space.get_cpu_time();  // Example double value
     yaml_node["energy-aware timeout"] = space.did_energy_aware_timeout();  // Example boolean value
 	yaml_node["valid_speed"] = dvfs;
+	yaml_node["Jobset size"] = problem.jobs.size();
 	yaml_node["speed_scaling_required"] = space.is_schedulable() ? space.did_speed_scale(): false; 
 	yaml_node["num_of_deadline_miss"] = space.get_num_dm(); 
 	YAML::Node selected_speed_node;
