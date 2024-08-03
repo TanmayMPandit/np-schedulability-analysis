@@ -19,7 +19,7 @@ for util in "${utils[@]}"; do
             if [[ -f "$jobset_file" ]]; then
                 # Run the command with the file
                 # echo "Running: build/nptest \"$jobset_file\" -m 4 -f \"0.74,0.8,0.87,0.94,1.0\" -u \"$util\""
-                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based -o "results/exp_1" -u "$util") &
+                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based --energy-timeout 3600 -o "results/exp_1" -u "$util") &
             else
                 # echo "$jobset_file is not a file."
             fi
