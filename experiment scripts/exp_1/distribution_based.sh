@@ -21,11 +21,11 @@ for util in "${utils[@]}"; do
                 # echo "Running: build/nptest \"$jobset_file\" -m 4 -f \"0.74,0.8,0.87,0.94,1.0\" -u \"$util\""
                 (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --energy-timeout 3600 -o "results/exp_1" -u "$util") &
             else
-                # echo "$jobset_file is not a file."
+                echo "$jobset_file is not a file."
             fi
         done
     else
-        # echo "Directory $jobset_dir does not exist."
+        echo "Directory $jobset_dir does not exist."
     fi
 done
 
