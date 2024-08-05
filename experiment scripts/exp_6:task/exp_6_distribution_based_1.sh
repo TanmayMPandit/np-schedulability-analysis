@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the array of heuristics
-tasks=(5 6 11 12) 
+tasks=(5 11 12) 
 
 # Loop through each util value
 for task in "${tasks[@]}"; do
