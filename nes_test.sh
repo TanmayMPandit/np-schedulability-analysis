@@ -1,6 +1,6 @@
 #!/bin/bash
 
-output_dir="exp_1/rand-fixed-sum-utilDist/log-uniform-discrete-perDist/4-core/6-task/100-jitter/2.80-util"
+output_dir="exp_1/rand-fixed-sum-utilDist/log-uniform-discrete-perDist/12-core"
 cores=4
 shopt -s globstar
 ## read all generated yaml file one by one and test them in output directory and its subdirectories
