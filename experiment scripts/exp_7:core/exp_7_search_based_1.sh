@@ -2,9 +2,8 @@
 
 # Define the array of cores
 cores=(
-    "6 9"
-    "8 12"
-    "10 15"
+    "2 3"
+    "12 18"
 )
 # Construct the directory path. Select correct util value
 
@@ -22,7 +21,7 @@ for core in "${cores[@]}"; do
             if [[ -f "$jobset_file" ]]; then
                 # Run the command with the file
                 # Update correct branching, link and search values
-                (build/nptest "$jobset_file" -m $core_value -f "0.74,0.8,0.87,0.94,1.0"   --energy-timeout 3600 -o "results/exp_7" -u "$core_value") &
+                (build/nptest "$jobset_file" -m $core_value -f "0.74,0.8,0.87,0.94,1.0" --search-based  --energy-timeout 3600 -o "results/exp_7" -u "$core_value") &
             else
                 echo "$jobset_file is not a file."
             fi

@@ -2,9 +2,8 @@
 
 # Define the array of cores
 cores=(
-    "6 9"
-    "8 12"
-    "10 15"
+    "2 3"
+    "12 18"
 )
 # Construct the directory path. Select correct util value
 
