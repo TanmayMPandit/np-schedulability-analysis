@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the array of heuristics
-tasks=(7 8 9 10) 
+tasks=(5 6 11 12) 
 
 # Loop through each util value
 for task in "${tasks[@]}"; do
@@ -15,7 +15,7 @@ for task in "${tasks[@]}"; do
             if [[ -f "$jobset_file" ]]; then
                 # Run the command with the file
                 # Update correct branching, link and search values
-                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based   --energy-timeout 3600 -o "results/exp_6" -u "$task") &
+                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0"  --energy-timeout 3600 -o "results/exp_6" -u "$task") &
             else
                 echo "$jobset_file is not a file."
             fi

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name="Exp_5:distribution"
+#SBATCH --job-name="Exp_6:distribution"
 #SBATCH --partition=compute
 #SBATCH --time=01:30:00
 #SBATCH --ntasks=1
@@ -9,4 +9,4 @@
 #SBATCH --account=education-eemcs-msc-es
 
 
-srun exp_5_distribution_based.sh
+srun exp_6_distribution_based.sh
