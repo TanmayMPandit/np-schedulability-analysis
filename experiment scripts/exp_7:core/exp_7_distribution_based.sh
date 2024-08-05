@@ -4,7 +4,6 @@
 cores=(
     "6 9"
     "8 12"
-    "10 15"
 )
 # Construct the directory path. Select correct util value
 
