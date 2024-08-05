@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Defi-ne the array of heuristics
-execution_ratios=(0.2 0.4 0.6 0.8 1.0)
+execution_ratios=(0.1 0.3 0.5 0.7 0.9)
 # Construct the directory path. Select correct util value
 
     

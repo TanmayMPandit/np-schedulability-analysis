@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Defi-ne the array of heuristics
-execution_ratios=(0.2 0.4 0.6 0.8 1.0)
+execution_ratios=(0.1 0.3 0.5 0.7 0.9)
 # Construct the directory path. Select correct util value
 
     
@@ -17,7 +17,7 @@ jobset_dir="exp_8/${ratio}/rand-fixed-sum-utilDist/log-uniform-discrete-perDist/
             if [[ -f "$jobset_file" ]]; then
                 # Run the command with the file
                 # Update correct branching, link and search values
-                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based   --energy-timeout 3600 -o "results/exp_8" -u "$ratio") &
+                (build/nptest "$jobset_file" -m 4 -f "1.0"   --energy-timeout 3600 -o "results/exp_8" -u "$ratio") &
             else
                 echo "$jobset_file is not a file."
             fi
