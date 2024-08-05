@@ -16,7 +16,7 @@ for k in "${ks[@]}"; do
             if [[ -f "$jobset_file" ]]; then
                 # Run the command with the file
                 # Update correct branching and search values
-                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based -k $k -b 0 --search_threshold 100   --energy-timeout 3600 -o "results/exp_4" -u "$k") &
+                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based -k $k  --energy-timeout 3600 -o "results/exp_4" -u "$k") &
             else
                 echo "$jobset_file is not a file."
             fi

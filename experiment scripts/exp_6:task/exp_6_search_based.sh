@@ -15,7 +15,7 @@ for task in "${tasks[@]}"; do
             if [[ -f "$jobset_file" ]]; then
                 # Run the command with the file
                 # Update correct branching, link and search values
-                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based --link_threshold 50 -k 1 -b 0 --search_threshold 100   --energy-timeout 3600 -o "results/exp_6" -u "$task") &
+                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based   --energy-timeout 3600 -o "results/exp_6" -u "$task") &
             else
                 echo "$jobset_file is not a file."
             fi

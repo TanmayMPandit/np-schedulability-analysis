@@ -16,7 +16,7 @@ for limit in "${explore_limits[@]}"; do
             if [[ -f "$jobset_file" ]]; then
                 # Run the command with the file
                 # Update correct branching, link and search values
-                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based --link_threshold $limit -k 1 -b 0 --search_threshold 100   --energy-timeout 3600 -o "results/exp_5" -u "$limit") &
+                (build/nptest "$jobset_file" -m 4 -f "0.74,0.8,0.87,0.94,1.0" --search-based --link_threshold $limit  --energy-timeout 3600 -o "results/exp_5" -u "$limit") &
             else
                 echo "$jobset_file is not a file."
             fi
