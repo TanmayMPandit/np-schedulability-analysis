@@ -7,7 +7,7 @@ import multiprocessing
 ks = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 # Construct the directory path: Select correct util value
-jobset_dir = "exp_1/rand-fixed-sum-utilDist/log-uniform-discrete-perDist/4-core/8-task/100-jitter/1.60-util/jobsets"
+jobset_dir = "exp_1/rand-fixed-sum-utilDist/log-uniform-discrete-perDist/4-core/6-task/100-jitter/1.60-util/jobsets"
 
 # Number of cores to use
 num_cores = 40
@@ -21,7 +21,7 @@ def run_command(jobset_file, k):
         "--search-based",
         "-f", "0.74,0.80,0.87,0.94,1.00",
         "-k", str(k),
-        "--energy-timeout", "3600",
+        "--energy-timeout", "9000",
         "-o", "results/exp_4",
         "-u", str(k)
     ]
