@@ -9,7 +9,7 @@ cores = [
 ]
 
 # Number of cores to use
-num_cores = 40
+num_cores = 30
 
 # Function to run the command
 def run_command(jobset_file, core_value):
@@ -18,7 +18,7 @@ def run_command(jobset_file, core_value):
         jobset_file,
         "-m", core_value,
         "-f", "1.00",
-        "--energy-timeout", "3600",
+        "--energy-timeout", "9000",
         "-o", "results/exp_7",
         "-u", core_value
     ]
@@ -32,7 +32,7 @@ job_sets = []
 
 # Loop through each core and task value
 for core_value, task_value in cores:
-    jobset_dir = f"exp_1/rand-fixed-sum-utilDist/log-uniform-discrete-perDist/{core_value}-core/{task_value}-task/100-jitter/1.60-util/jobsets"
+    jobset_dir = f"exp_1/rand-fixed-sum-utilDist/log-uniform-discrete-perDist/{core_value}-core/{task_value}-task/100-jitter/3.20-util/jobsets"
     
     # Check if the directory exists
     jobset_path = Path(jobset_dir)

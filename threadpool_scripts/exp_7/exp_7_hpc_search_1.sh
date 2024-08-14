@@ -2,10 +2,10 @@
 
 #SBATCH --job-name="Exp_7:Search_1"
 #SBATCH --partition=compute
-#SBATCH --time=04:00:00
+#SBATCH --time=20:00:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=40
-#SBATCH --mem-per-cpu=3G
+#SBATCH --cpus-per-task=30
+#SBATCH --mem=180G
 #SBATCH --account=education-eemcs-msc-es
 
 module load 2022r2
