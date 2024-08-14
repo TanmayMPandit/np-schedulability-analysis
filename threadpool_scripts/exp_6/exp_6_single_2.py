@@ -7,7 +7,7 @@ import multiprocessing
 tasks = [10]
 
 # Number of cores to use
-num_cores = 40
+num_cores = 30
 
 # Function to run the command
 def run_command(jobset_file, task):
@@ -16,7 +16,7 @@ def run_command(jobset_file, task):
         jobset_file,
         "-m", "4",
         "-f", "1.00",
-        "--energy-timeout", "3600",
+        "--energy-timeout", "9000",
         "-o", "results/exp_6",
         "-u", str(task)
     ]
